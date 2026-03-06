@@ -1,4 +1,5 @@
 from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.orm import relationship
 
 from app.database import Base
 
@@ -12,3 +13,5 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(String, nullable=False, default="user")
     is_active = Column(Boolean, nullable=False, default=True)
+
+    portfolios = relationship("Portfolio", back_populates="owner", cascade="all, delete-orphan")
