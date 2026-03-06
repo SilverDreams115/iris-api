@@ -18,3 +18,4 @@ class User(Base):
     broker_accounts = relationship("BrokerAccount", back_populates="owner", cascade="all, delete-orphan")
     strategies = relationship("Strategy", back_populates="owner", cascade="all, delete-orphan")
     trades = relationship("Trade", back_populates="owner", cascade="all, delete-orphan")
+    signals = relationship("Signal", back_populates="owner", cascade="all, delete-orphan")

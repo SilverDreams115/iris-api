@@ -25,3 +25,4 @@ class Trade(Base):
     owner = relationship("User", back_populates="trades")
     strategy = relationship("Strategy", back_populates="trades")
     broker_account = relationship("BrokerAccount", back_populates="trades")
+    signal = relationship("Signal", back_populates="trade", uselist=False)
