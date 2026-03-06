@@ -14,8 +14,9 @@ from app.crud.signal import (
 )
 from app.database import get_db
 from app.models.user import User
-from app.schemas.signal import SignalCreate, SignalResponse, SignalUpdate
-
+from app.schemas.signal import SignalCreate, SignalExecuteRequest, SignalResponse, SignalUpdate
+from app.schemas.trade import TradeResponse
+from app.services.execution import execute_signal
 
 router = APIRouter(prefix="/signals", tags=["Signals"])
 
@@ -47,6 +48,27 @@ def create_signal_endpoint(
             raise HTTPException(status_code=403, detail="Trade does not belong to current user")
 
     return create_signal(db, current_user.id, signal_in)
+
+
+@router.post(
+    "/{signal_id}/execute",
+    response_model=TradeResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def execute_signal_endpoint(
+    signal_id: int,
+    execution_in: SignalExecuteRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    signal = get_signal_by_id(db, signal_id)
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+
+    if current_user.role != "admin" and signal.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    return execute_signal(db, signal, execution_in)
 
 
 @router.get("/", response_model=list[SignalResponse])
@@ -95,7 +117,12 @@ def update_signal_endpoint(
     if signal_in.side is not None and signal_in.side not in {"buy", "sell"}:
         raise HTTPException(status_code=400, detail="Invalid side")
 
-    if signal_in.status is not None and signal_in.status not in {"pending", "triggered", "executed", "cancelled"}:
+    if signal_in.status is not None and signal_in.status not in {
+        "pending",
+        "triggered",
+        "executed",
+        "cancelled",
+    }:
         raise HTTPException(status_code=400, detail="Invalid status")
 
     if signal_in.strategy_id is not None:
