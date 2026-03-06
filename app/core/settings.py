@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql+psycopg2://silver:silverpass@db:5432/appdb"
     REDIS_URL: str = "redis://redis:6379/0"
 
-    JWT_SECRET_KEY: str = "change_this_secret"
+    JWT_SECRET_KEY: str = "super_secret_key_change_me"
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
