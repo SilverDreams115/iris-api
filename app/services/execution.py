@@ -4,124 +4,78 @@ from decimal import Decimal
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-from app.models.broker_account import BrokerAccount
+from app.core.logging import get_logger
 from app.models.signal import Signal
-from app.models.strategy import Strategy
 from app.models.trade import Trade
 from app.schemas.signal import SignalExecuteRequest
+
+logger = get_logger(__name__)
+
+
+def _conflict(detail: str) -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail=detail,
+    )
 
 
 def _validate_execution_prices(signal: Signal, execution_in: SignalExecuteRequest) -> None:
     entry_price: Decimal = execution_in.entry_price
-    stop_loss: Decimal | None = execution_in.stop_loss
-    take_profit: Decimal | None = execution_in.take_profit
-
-    if stop_loss is None or take_profit is None:
-        return
+    stop_loss: Decimal = execution_in.stop_loss
+    take_profit: Decimal = execution_in.take_profit
 
     if signal.side == "buy":
         if not (stop_loss < entry_price < take_profit):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Invalid price relationship for buy signal",
-            )
+            raise _conflict("Invalid price relationship for buy signal")
 
     elif signal.side == "sell":
         if not (take_profit < entry_price < stop_loss):
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail="Invalid price relationship for sell signal",
-            )
-
-    else:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Invalid signal side",
-        )
-
-
-def reject_signal(db: Session, signal: Signal, rejection_reason: str) -> Signal:
-    if signal.status in {"executed", "cancelled", "rejected"}:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Only pending or triggered signals can be rejected",
-        )
-
-    if signal.trade_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Cannot reject a signal already associated with a trade",
-        )
-
-    signal.status = "rejected"
-    signal.rejected_at = datetime.now(timezone.utc)
-    signal.rejection_reason = rejection_reason
-
-    db.commit()
-    db.refresh(signal)
-    return signal
+            raise _conflict("Invalid price relationship for sell signal")
 
 
 def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteRequest) -> Trade:
     if signal.status not in {"pending", "triggered"}:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Only pending or triggered signals can be executed",
+        logger.warning(
+            "Signal execution rejected. signal_id=%s status=%s",
+            signal.id,
+            signal.status,
         )
+        raise _conflict("Only pending or triggered signals can be executed")
 
-    if signal.trade_id is not None:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Signal already has an associated trade",
-        )
+    strategy = signal.strategy
+    broker_account = strategy.broker_account if strategy else None
 
-    strategy = db.query(Strategy).filter(Strategy.id == signal.strategy_id).first()
-    if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
+    if strategy is None:
+        logger.warning(
+            "Signal execution rejected. signal_id=%s missing_strategy",
+            signal.id,
         )
+        raise _conflict("Signal strategy is not available")
 
     if not strategy.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Strategy is inactive",
+        logger.warning(
+            "Signal execution rejected. signal_id=%s strategy_id=%s inactive_strategy",
+            signal.id,
+            strategy.id,
         )
+        raise _conflict("Strategy is inactive")
 
-    if strategy.owner_id != signal.owner_id:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Signal owner and strategy owner do not match",
+    if broker_account is None:
+        logger.warning(
+            "Signal execution rejected. signal_id=%s strategy_id=%s missing_broker_account",
+            signal.id,
+            strategy.id,
         )
-
-    if strategy.symbol != signal.symbol:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Signal symbol does not match strategy symbol",
-        )
-
-    broker_account = (
-        db.query(BrokerAccount)
-        .filter(BrokerAccount.id == strategy.broker_account_id)
-        .first()
-    )
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
-
-    if broker_account.owner_id != signal.owner_id:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Signal owner and broker account owner do not match",
-        )
+        raise _conflict("Strategy broker account is not available")
 
     if broker_account.status != "active":
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Broker account is not active",
+        logger.warning(
+            "Signal execution rejected. signal_id=%s broker_account_id=%s broker_status=%s",
+            signal.id,
+            broker_account.id,
+            broker_account.status,
         )
+        raise _conflict("Broker account is not active")
 
     _validate_execution_prices(signal, execution_in)
 
@@ -130,30 +84,58 @@ def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteReque
         side=signal.side,
         volume=execution_in.volume,
         entry_price=execution_in.entry_price,
-        exit_price=None,
         stop_loss=execution_in.stop_loss,
         take_profit=execution_in.take_profit,
         status="open",
-        pnl=None,
         owner_id=signal.owner_id,
-        strategy_id=strategy.id,
+        strategy_id=signal.strategy_id,
         broker_account_id=broker_account.id,
     )
 
-    try:
-        db.add(trade)
-        db.flush()
+    db.add(trade)
+    db.flush()
 
-        signal.trade_id = trade.id
-        signal.status = "executed"
-        signal.executed_at = datetime.now(timezone.utc)
-        signal.rejected_at = None
-        signal.rejection_reason = None
+    signal.status = "executed"
+    signal.trade_id = trade.id
+    signal.executed_at = datetime.now(timezone.utc)
+    if execution_in.notes is not None:
+        signal.notes = execution_in.notes
 
-        db.commit()
-        db.refresh(trade)
-        db.refresh(signal)
-        return trade
-    except Exception:
-        db.rollback()
-        raise
+    db.commit()
+    db.refresh(trade)
+    db.refresh(signal)
+
+    logger.info(
+        "Signal executed successfully. signal_id=%s trade_id=%s owner_id=%s",
+        signal.id,
+        trade.id,
+        signal.owner_id,
+    )
+
+    return trade
+
+
+def reject_signal(db: Session, signal: Signal, rejection_reason: str) -> Signal:
+    if signal.status not in {"pending", "triggered"}:
+        logger.warning(
+            "Signal rejection rejected. signal_id=%s status=%s",
+            signal.id,
+            signal.status,
+        )
+        raise _conflict("Only pending or triggered signals can be rejected")
+
+    signal.status = "rejected"
+    signal.rejection_reason = rejection_reason
+    signal.rejected_at = datetime.now(timezone.utc)
+
+    db.commit()
+    db.refresh(signal)
+
+    logger.info(
+        "Signal rejected. signal_id=%s owner_id=%s reason=%s",
+        signal.id,
+        signal.owner_id,
+        rejection_reason,
+    )
+
+    return signal
