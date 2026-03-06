@@ -21,3 +21,4 @@ class Strategy(Base):
     owner = relationship("User", back_populates="strategies")
     portfolio = relationship("Portfolio", back_populates="strategies")
     broker_account = relationship("BrokerAccount", back_populates="strategies")
+    trades = relationship("Trade", back_populates="strategy", cascade="all, delete-orphan")
