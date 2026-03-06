@@ -66,7 +66,10 @@ def execute_signal(
 
     if broker_account is None:
         logger.warning(
-            "Signal execution rejected. signal_id=%s strategy_id=%s missing_broker_account",
+            (
+                "Signal execution rejected. signal_id=%s "
+                "strategy_id=%s missing_broker_account"
+            ),
             signal.id,
             strategy.id,
         )
@@ -74,7 +77,10 @@ def execute_signal(
 
     if broker_account.status != "active":
         logger.warning(
-            "Signal execution rejected. signal_id=%s broker_account_id=%s broker_status=%s",
+            (
+                "Signal execution rejected. signal_id=%s "
+                "broker_account_id=%s broker_status=%s"
+            ),
             signal.id,
             broker_account.id,
             broker_account.status,

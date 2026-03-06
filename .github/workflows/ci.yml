@@ -3,50 +3,47 @@ name: CI
 on:
   push:
     branches:
-      - feat/base-backend-working
       - main
+      - master
       - develop
+      - feat/**
+      - fix/**
+      - chore/**
   pull_request:
-    branches:
-      - feat/base-backend-working
-      - main
-      - develop
 
 jobs:
-  test:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
+      - name: Set up Python 3.11
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
-
-      - name: Create virtual environment
-        run: python -m venv .venv
+          cache: "pip"
 
       - name: Install dependencies
         run: |
-          . .venv/bin/activate
           python -m pip install --upgrade pip
           pip install -r requirements.txt
 
-      - name: Create test environment file
-        run: |
-          cat > .env <<'EOF'
-          APP_NAME=IRIS API
-          DEBUG=True
-          DATABASE_URL=sqlite:///./test.db
-          REDIS_URL=redis://localhost:6379/0
-          JWT_SECRET_KEY=test_secret_key
-          JWT_ALGORITHM=HS256
-          ACCESS_TOKEN_EXPIRE_MINUTES=30
-          EOF
+      - name: Check formatting with Black
+        run: black --check app tests
+
+      - name: Check import ordering with isort
+        run: isort --check-only app tests
+
+      - name: Lint with Ruff
+        run: ruff check app tests
 
       - name: Run tests
-        run: |
-          . .venv/bin/activate
-          pytest -q
+        env:
+          DATABASE_URL: sqlite:///./test.db
+          JWT_SECRET_KEY: test-secret-key
+          JWT_ALGORITHM: HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+          DEBUG: "false"
+        run: pytest -q

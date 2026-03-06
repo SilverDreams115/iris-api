@@ -1,6 +1,8 @@
-from app.core.error_messages import (NOT_ENOUGH_PERMISSIONS,
-                                     TRADE_STRATEGY_MISMATCH,
-                                     TRADE_STRATEGY_OWNER_MISMATCH)
+from app.core.error_messages import (
+    NOT_ENOUGH_PERMISSIONS,
+    TRADE_STRATEGY_MISMATCH,
+    TRADE_STRATEGY_OWNER_MISMATCH,
+)
 from app.core.exceptions import bad_request, forbidden, not_found
 
 

@@ -3,9 +3,14 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_role
 from app.core.error_messages import NOT_ENOUGH_PERMISSIONS, USER_NOT_FOUND
-from app.crud.user import (delete_user, get_user_by_id, get_users,
-                           set_user_active_status, update_user,
-                           update_user_role)
+from app.crud.user import (
+    delete_user,
+    get_user_by_id,
+    get_users,
+    set_user_active_status,
+    update_user,
+    update_user_role,
+)
 from app.database import get_db
 from app.models.user import User
 from app.schemas.enums import UserRole

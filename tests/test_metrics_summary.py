@@ -124,9 +124,7 @@ def test_metrics_summary_returns_expected_values(client):
     trade2 = create_trade(
         client, token, resources["strategy_id"], resources["broker_id"]
     )
-    create_trade(
-        client, token, resources["strategy_id"], resources["broker_id"]
-    )
+    create_trade(client, token, resources["strategy_id"], resources["broker_id"])
 
     close_trade(client, token, trade1["id"], pnl=50.25, exit_price=1.1100)
     close_trade(client, token, trade2["id"], pnl=-20.10, exit_price=1.0950)
