@@ -1,7 +1,15 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.error_messages import (
+    NOT_ENOUGH_PERMISSIONS,
+    SIGNAL_NOT_FOUND,
+    STRATEGY_NOT_FOUND,
+    STRATEGY_NOT_OWNED,
+    TRADE_NOT_FOUND,
+    TRADE_NOT_OWNED,
+)
 from app.crud.signal import (
     create_signal,
     delete_signal,
@@ -23,6 +31,12 @@ from app.schemas.signal import (
 )
 from app.schemas.trade import TradeResponse
 from app.services.execution import execute_signal, reject_signal
+from app.services.validators import (
+    ensure_exists,
+    ensure_owned_by_current_user,
+    ensure_owner_or_admin,
+    ensure_trade_matches_strategy,
+)
 
 router = APIRouter(prefix="/signals", tags=["Signals"])
 
@@ -32,33 +46,18 @@ def _ensure_strategy_and_trade_are_coherent(
     strategy_id: int,
     trade_id: int | None,
 ):
-    strategy = get_strategy_by_id(db, strategy_id)
-    if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
-        )
+    strategy = ensure_exists(
+        get_strategy_by_id(db, strategy_id),
+        STRATEGY_NOT_FOUND,
+    )
 
     trade = None
     if trade_id is not None:
-        trade = get_trade_by_id(db, trade_id)
-        if not trade:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Trade not found",
-            )
-
-        if trade.owner_id != strategy.owner_id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Trade and strategy must belong to the same owner",
-            )
-
-        if trade.strategy_id != strategy.id:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Trade must belong to the provided strategy",
-            )
+        trade = ensure_exists(
+            get_trade_by_id(db, trade_id),
+            TRADE_NOT_FOUND,
+        )
+        ensure_trade_matches_strategy(trade, strategy)
 
     return strategy, trade
 
@@ -75,17 +74,17 @@ def create_signal_endpoint(
         signal_in.trade_id,
     )
 
-    if current_user.role != "admin":
-        if strategy.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Strategy does not belong to current user",
-            )
-        if trade is not None and trade.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Trade does not belong to current user",
-            )
+    ensure_owned_by_current_user(
+        current_user,
+        strategy.owner_id,
+        STRATEGY_NOT_OWNED,
+    )
+    if trade is not None:
+        ensure_owned_by_current_user(
+            current_user,
+            trade.owner_id,
+            TRADE_NOT_OWNED,
+        )
 
     return create_signal(db, current_user.id, signal_in)
 
@@ -101,13 +100,8 @@ def execute_signal_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    signal = get_signal_by_id(db, signal_id)
-    if not signal:
-        raise HTTPException(status_code=404, detail="Signal not found")
-
-    if current_user.role != "admin" and signal.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
+    signal = ensure_exists(get_signal_by_id(db, signal_id), SIGNAL_NOT_FOUND)
+    ensure_owner_or_admin(current_user, signal.owner_id, NOT_ENOUGH_PERMISSIONS)
     return execute_signal(db, signal, execution_in)
 
 
@@ -122,13 +116,8 @@ def reject_signal_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    signal = get_signal_by_id(db, signal_id)
-    if not signal:
-        raise HTTPException(status_code=404, detail="Signal not found")
-
-    if current_user.role != "admin" and signal.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
+    signal = ensure_exists(get_signal_by_id(db, signal_id), SIGNAL_NOT_FOUND)
+    ensure_owner_or_admin(current_user, signal.owner_id, NOT_ENOUGH_PERMISSIONS)
     return reject_signal(db, signal, rejection_in.rejection_reason)
 
 
@@ -150,13 +139,8 @@ def get_signal_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    signal = get_signal_by_id(db, signal_id)
-    if not signal:
-        raise HTTPException(status_code=404, detail="Signal not found")
-
-    if current_user.role != "admin" and signal.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
+    signal = ensure_exists(get_signal_by_id(db, signal_id), SIGNAL_NOT_FOUND)
+    ensure_owner_or_admin(current_user, signal.owner_id, NOT_ENOUGH_PERMISSIONS)
     return signal
 
 
@@ -167,12 +151,8 @@ def update_signal_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    signal = get_signal_by_id(db, signal_id)
-    if not signal:
-        raise HTTPException(status_code=404, detail="Signal not found")
-
-    if current_user.role != "admin" and signal.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    signal = ensure_exists(get_signal_by_id(db, signal_id), SIGNAL_NOT_FOUND)
+    ensure_owner_or_admin(current_user, signal.owner_id, NOT_ENOUGH_PERMISSIONS)
 
     target_strategy_id = (
         signal_in.strategy_id
@@ -191,17 +171,17 @@ def update_signal_endpoint(
         target_trade_id,
     )
 
-    if current_user.role != "admin":
-        if strategy.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Strategy does not belong to current user",
-            )
-        if trade is not None and trade.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Trade does not belong to current user",
-            )
+    ensure_owned_by_current_user(
+        current_user,
+        strategy.owner_id,
+        STRATEGY_NOT_OWNED,
+    )
+    if trade is not None:
+        ensure_owned_by_current_user(
+            current_user,
+            trade.owner_id,
+            TRADE_NOT_OWNED,
+        )
 
     return update_signal(db, signal, signal_in)
 
@@ -212,12 +192,8 @@ def delete_signal_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    signal = get_signal_by_id(db, signal_id)
-    if not signal:
-        raise HTTPException(status_code=404, detail="Signal not found")
-
-    if current_user.role != "admin" and signal.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    signal = ensure_exists(get_signal_by_id(db, signal_id), SIGNAL_NOT_FOUND)
+    ensure_owner_or_admin(current_user, signal.owner_id, NOT_ENOUGH_PERMISSIONS)
 
     delete_signal(db, signal)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

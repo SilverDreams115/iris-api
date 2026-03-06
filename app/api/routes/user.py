@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user, require_role
+from app.core.error_messages import NOT_ENOUGH_PERMISSIONS, USER_NOT_FOUND
 from app.crud.user import (
     delete_user,
     get_user_by_id,
@@ -14,6 +15,7 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.enums import UserRole
 from app.schemas.user import UserResponse, UserRoleUpdate, UserUpdate
+from app.services.validators import ensure_exists, ensure_owner_or_admin
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -34,19 +36,8 @@ def get_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    if current_user.role != UserRole.admin.value and current_user.id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
+    ensure_owner_or_admin(current_user, user.id, NOT_ENOUGH_PERMISSIONS)
     return user
 
 
@@ -57,19 +48,8 @@ def update_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
-    if current_user.role != UserRole.admin.value and current_user.id != user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
+    ensure_owner_or_admin(current_user, user.id, NOT_ENOUGH_PERMISSIONS)
     return update_user(db, user, user_in)
 
 
@@ -80,13 +60,7 @@ def update_user_role_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
+    user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     return update_user_role(db, user, role_in.role.value)
 
 
@@ -96,13 +70,7 @@ def deactivate_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
+    user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     return set_user_active_status(db, user, False)
 
 
@@ -112,13 +80,7 @@ def activate_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
+    user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     return set_user_active_status(db, user, True)
 
 
@@ -128,12 +90,6 @@ def delete_user_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
-    user = get_user_by_id(db, user_id)
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="User not found",
-        )
-
+    user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     delete_user(db, user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

@@ -1,7 +1,16 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.error_messages import (
+    BROKER_ACCOUNT_NOT_FOUND,
+    BROKER_ACCOUNT_NOT_OWNED,
+    NOT_ENOUGH_PERMISSIONS,
+    PORTFOLIO_BROKER_OWNER_MISMATCH,
+    PORTFOLIO_NOT_FOUND,
+    PORTFOLIO_NOT_OWNED,
+    STRATEGY_NOT_FOUND,
+)
 from app.crud.strategy import (
     create_strategy,
     delete_strategy,
@@ -15,6 +24,12 @@ from app.crud.strategy import (
 from app.database import get_db
 from app.models.user import User
 from app.schemas.strategy import StrategyCreate, StrategyResponse, StrategyUpdate
+from app.services.validators import (
+    ensure_exists,
+    ensure_owned_by_current_user,
+    ensure_owner_or_admin,
+    ensure_same_owner,
+)
 
 router = APIRouter(prefix="/strategies", tags=["Strategies"])
 
@@ -24,25 +39,20 @@ def _ensure_portfolio_and_broker_are_coherent(
     portfolio_id: int,
     broker_account_id: int,
 ):
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Portfolio not found",
-        )
+    portfolio = ensure_exists(
+        get_portfolio_by_id(db, portfolio_id),
+        PORTFOLIO_NOT_FOUND,
+    )
+    broker_account = ensure_exists(
+        get_broker_account_by_id(db, broker_account_id),
+        BROKER_ACCOUNT_NOT_FOUND,
+    )
 
-    broker_account = get_broker_account_by_id(db, broker_account_id)
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
-
-    if portfolio.owner_id != broker_account.owner_id:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Portfolio and broker account must belong to the same owner",
-        )
+    ensure_same_owner(
+        portfolio.owner_id,
+        broker_account.owner_id,
+        PORTFOLIO_BROKER_OWNER_MISMATCH,
+    )
 
     return portfolio, broker_account
 
@@ -59,17 +69,16 @@ def create_strategy_endpoint(
         strategy_in.broker_account_id,
     )
 
-    if current_user.role != "admin":
-        if portfolio.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Portfolio does not belong to current user",
-            )
-        if broker_account.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Broker account does not belong to current user",
-            )
+    ensure_owned_by_current_user(
+        current_user,
+        portfolio.owner_id,
+        PORTFOLIO_NOT_OWNED,
+    )
+    ensure_owned_by_current_user(
+        current_user,
+        broker_account.owner_id,
+        BROKER_ACCOUNT_NOT_OWNED,
+    )
 
     return create_strategy(db, current_user.id, strategy_in)
 
@@ -92,19 +101,8 @@ def get_strategy_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    strategy = get_strategy_by_id(db, strategy_id)
-    if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
-        )
-
-    if current_user.role != "admin" and strategy.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    strategy = ensure_exists(get_strategy_by_id(db, strategy_id), STRATEGY_NOT_FOUND)
+    ensure_owner_or_admin(current_user, strategy.owner_id, NOT_ENOUGH_PERMISSIONS)
     return strategy
 
 
@@ -115,18 +113,8 @@ def update_strategy_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    strategy = get_strategy_by_id(db, strategy_id)
-    if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
-        )
-
-    if current_user.role != "admin" and strategy.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
+    strategy = ensure_exists(get_strategy_by_id(db, strategy_id), STRATEGY_NOT_FOUND)
+    ensure_owner_or_admin(current_user, strategy.owner_id, NOT_ENOUGH_PERMISSIONS)
 
     target_portfolio_id = (
         strategy_in.portfolio_id
@@ -145,17 +133,16 @@ def update_strategy_endpoint(
         target_broker_account_id,
     )
 
-    if current_user.role != "admin":
-        if portfolio.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Portfolio does not belong to current user",
-            )
-        if broker_account.owner_id != current_user.id:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Broker account does not belong to current user",
-            )
+    ensure_owned_by_current_user(
+        current_user,
+        portfolio.owner_id,
+        PORTFOLIO_NOT_OWNED,
+    )
+    ensure_owned_by_current_user(
+        current_user,
+        broker_account.owner_id,
+        BROKER_ACCOUNT_NOT_OWNED,
+    )
 
     return update_strategy(db, strategy, strategy_in)
 
@@ -166,18 +153,8 @@ def delete_strategy_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    strategy = get_strategy_by_id(db, strategy_id)
-    if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
-        )
-
-    if current_user.role != "admin" and strategy.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
+    strategy = ensure_exists(get_strategy_by_id(db, strategy_id), STRATEGY_NOT_FOUND)
+    ensure_owner_or_admin(current_user, strategy.owner_id, NOT_ENOUGH_PERMISSIONS)
 
     delete_strategy(db, strategy)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
