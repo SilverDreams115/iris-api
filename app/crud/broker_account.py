@@ -8,7 +8,7 @@ def create_broker_account(db: Session, owner_id: int, broker_account_in: BrokerA
     db_broker_account = BrokerAccount(
         broker_name=broker_account_in.broker_name,
         account_label=broker_account_in.account_label,
-        account_type=broker_account_in.account_type,
+        account_type=broker_account_in.account_type.value,
         status="active",
         owner_id=owner_id,
     )
@@ -39,15 +39,12 @@ def get_all_broker_accounts(db: Session, skip: int = 0, limit: int = 100):
 def update_broker_account(db: Session, db_broker_account: BrokerAccount, broker_account_in: BrokerAccountUpdate):
     if broker_account_in.broker_name is not None:
         db_broker_account.broker_name = broker_account_in.broker_name
-
     if broker_account_in.account_label is not None:
         db_broker_account.account_label = broker_account_in.account_label
-
     if broker_account_in.account_type is not None:
-        db_broker_account.account_type = broker_account_in.account_type
-
+        db_broker_account.account_type = broker_account_in.account_type.value
     if broker_account_in.status is not None:
-        db_broker_account.status = broker_account_in.status
+        db_broker_account.status = broker_account_in.status.value
 
     db.commit()
     db.refresh(db_broker_account)

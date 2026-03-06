@@ -10,7 +10,7 @@ def create_strategy(db: Session, owner_id: int, strategy_in: StrategyCreate):
     db_strategy = Strategy(
         name=strategy_in.name,
         symbol=strategy_in.symbol,
-        timeframe=strategy_in.timeframe,
+        timeframe=strategy_in.timeframe.value,
         risk_percent=strategy_in.risk_percent,
         is_active=True,
         owner_id=owner_id,
@@ -52,22 +52,16 @@ def get_broker_account_by_id(db: Session, broker_account_id: int):
 def update_strategy(db: Session, db_strategy: Strategy, strategy_in: StrategyUpdate):
     if strategy_in.name is not None:
         db_strategy.name = strategy_in.name
-
     if strategy_in.symbol is not None:
         db_strategy.symbol = strategy_in.symbol
-
     if strategy_in.timeframe is not None:
-        db_strategy.timeframe = strategy_in.timeframe
-
+        db_strategy.timeframe = strategy_in.timeframe.value
     if strategy_in.risk_percent is not None:
         db_strategy.risk_percent = strategy_in.risk_percent
-
     if strategy_in.is_active is not None:
         db_strategy.is_active = strategy_in.is_active
-
     if strategy_in.portfolio_id is not None:
         db_strategy.portfolio_id = strategy_in.portfolio_id
-
     if strategy_in.broker_account_id is not None:
         db_strategy.broker_account_id = strategy_in.broker_account_id
 

@@ -12,8 +12,8 @@ from app.crud.user import (
 )
 from app.database import get_db
 from app.models.user import User
+from app.schemas.enums import UserRole
 from app.schemas.user import UserResponse, UserRoleUpdate, UserUpdate
-
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -23,7 +23,7 @@ def list_users(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
     return get_users(db, skip=skip, limit=limit)
 
@@ -41,7 +41,7 @@ def get_user_endpoint(
             detail="User not found",
         )
 
-    if current_user.role != "admin" and current_user.id != user.id:
+    if current_user.role != UserRole.admin.value and current_user.id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions",
@@ -64,7 +64,7 @@ def update_user_endpoint(
             detail="User not found",
         )
 
-    if current_user.role != "admin" and current_user.id != user.id:
+    if current_user.role != UserRole.admin.value and current_user.id != user.id:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Not enough permissions",
@@ -78,14 +78,8 @@ def update_user_role_endpoint(
     user_id: int,
     role_in: UserRoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
-    if role_in.role not in {"user", "admin"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid role",
-        )
-
     user = get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(
@@ -93,14 +87,14 @@ def update_user_role_endpoint(
             detail="User not found",
         )
 
-    return update_user_role(db, user, role_in.role)
+    return update_user_role(db, user, role_in.role.value)
 
 
 @router.patch("/{user_id}/deactivate", response_model=UserResponse)
 def deactivate_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
     user = get_user_by_id(db, user_id)
     if not user:
@@ -116,7 +110,7 @@ def deactivate_user_endpoint(
 def activate_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
     user = get_user_by_id(db, user_id)
     if not user:
@@ -132,7 +126,7 @@ def activate_user_endpoint(
 def delete_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role("admin")),
+    current_user: User = Depends(require_role(UserRole.admin.value)),
 ):
     user = get_user_by_id(db, user_id)
     if not user:

@@ -1,28 +1,30 @@
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr
+from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from app.schemas.enums import UserRole
 
 
 class UserBase(BaseModel):
     email: EmailStr
-    name: str
+    name: str = Field(min_length=1, max_length=255)
 
 
 class UserCreate(UserBase):
-    password: str
+    password: str = Field(min_length=8, max_length=255)
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
 
 
 class UserRoleUpdate(BaseModel):
-    role: str
+    role: UserRole
 
 
 class UserResponse(UserBase):
     id: int
-    role: str
+    role: UserRole
     is_active: bool
 
     model_config = ConfigDict(from_attributes=True)
