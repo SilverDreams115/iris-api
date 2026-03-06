@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -16,6 +17,11 @@ class TradeCreate(BaseModel):
     pnl: Optional[Decimal] = None
     strategy_id: int
     broker_account_id: int
+
+
+class TradeCloseRequest(BaseModel):
+    exit_price: Decimal = Field(gt=0)
+    pnl: Decimal
 
 
 class TradeUpdate(BaseModel):
@@ -43,6 +49,7 @@ class TradeResponse(BaseModel):
     take_profit: Optional[Decimal]
     status: str
     pnl: Optional[Decimal]
+    closed_at: Optional[datetime]
     owner_id: int
     strategy_id: int
     broker_account_id: int

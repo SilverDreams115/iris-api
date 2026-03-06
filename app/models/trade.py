@@ -1,4 +1,4 @@
-from sqlalchemy import Column, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, Numeric, String
 from sqlalchemy.orm import relationship
 
 from app.database import Base
@@ -17,6 +17,7 @@ class Trade(Base):
     take_profit = Column(Numeric(18, 8), nullable=True)
     status = Column(String, nullable=False, default="open")
     pnl = Column(Numeric(18, 8), nullable=True)
+    closed_at = Column(DateTime(timezone=True), nullable=True)
 
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
     strategy_id = Column(Integer, ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False)

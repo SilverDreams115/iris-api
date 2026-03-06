@@ -14,7 +14,8 @@ from app.crud.trade import (
 )
 from app.database import get_db
 from app.models.user import User
-from app.schemas.trade import TradeCreate, TradeResponse, TradeUpdate
+from app.schemas.trade import TradeCloseRequest, TradeCreate, TradeResponse, TradeUpdate
+from app.services.trade_closer import close_trade
 
 
 router = APIRouter(prefix="/trades", tags=["Trades"])
@@ -66,6 +67,29 @@ def create_trade_endpoint(
             )
 
     return create_trade(db, current_user.id, trade_in)
+
+
+@router.post("/{trade_id}/close", response_model=TradeResponse, status_code=status.HTTP_200_OK)
+def close_trade_endpoint(
+    trade_id: int,
+    close_in: TradeCloseRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    trade = get_trade_by_id(db, trade_id)
+    if not trade:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Trade not found",
+        )
+
+    if current_user.role != "admin" and trade.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not enough permissions",
+        )
+
+    return close_trade(db, trade, close_in)
 
 
 @router.get("/", response_model=list[TradeResponse])
