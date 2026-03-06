@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
@@ -17,6 +17,27 @@ from app.schemas.metrics import MetricsResponse
 
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
+
+
+@router.get("/summary", response_model=MetricsResponse)
+def metrics_summary(
+    strategy_id: int | None = Query(default=None, ge=1),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    owner_id = None if current_user.role == "admin" else current_user.id
+
+    if strategy_id is not None:
+        strategy = get_strategy_by_id(db, strategy_id)
+        if not strategy:
+            raise HTTPException(status_code=404, detail="Strategy not found")
+
+        if current_user.role != "admin" and strategy.owner_id != current_user.id:
+            raise HTTPException(status_code=403, detail="Not enough permissions")
+
+        return get_strategy_metrics(db, strategy_id=strategy_id, owner_id=owner_id)
+
+    return get_overview_metrics(db, owner_id=owner_id)
 
 
 @router.get("/overview", response_model=MetricsResponse)
