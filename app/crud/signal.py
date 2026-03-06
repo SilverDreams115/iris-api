@@ -17,6 +17,7 @@ def create_signal(db: Session, owner_id: int, signal_in: SignalCreate):
         owner_id=owner_id,
         strategy_id=signal_in.strategy_id,
         trade_id=signal_in.trade_id,
+        rejection_reason=signal_in.rejection_reason,
     )
     db.add(db_signal)
     db.commit()
@@ -74,6 +75,9 @@ def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate):
 
     if signal_in.trade_id is not None:
         db_signal.trade_id = signal_in.trade_id
+
+    if signal_in.rejection_reason is not None:
+        db_signal.rejection_reason = signal_in.rejection_reason
 
     db.commit()
     db.refresh(db_signal)

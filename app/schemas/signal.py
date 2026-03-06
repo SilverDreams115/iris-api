@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 from typing import Optional
 
@@ -13,6 +14,7 @@ class SignalCreate(BaseModel):
     notes: Optional[str] = None
     strategy_id: int
     trade_id: Optional[int] = None
+    rejection_reason: Optional[str] = None
 
 
 class SignalExecuteRequest(BaseModel):
@@ -31,6 +33,7 @@ class SignalUpdate(BaseModel):
     notes: Optional[str] = None
     strategy_id: Optional[int] = None
     trade_id: Optional[int] = None
+    rejection_reason: Optional[str] = None
 
 
 class SignalResponse(BaseModel):
@@ -41,6 +44,8 @@ class SignalResponse(BaseModel):
     status: str
     source: str
     notes: Optional[str]
+    executed_at: Optional[datetime]
+    rejection_reason: Optional[str]
     owner_id: int
     strategy_id: int
     trade_id: Optional[int]

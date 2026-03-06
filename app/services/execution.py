@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from decimal import Decimal
 
 from fastapi import HTTPException, status
@@ -123,6 +124,8 @@ def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteReque
 
         signal.trade_id = trade.id
         signal.status = "executed"
+        signal.executed_at = datetime.now(timezone.utc)
+        signal.rejection_reason = None
 
         db.commit()
         db.refresh(trade)

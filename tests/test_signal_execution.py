@@ -282,3 +282,55 @@ def test_cannot_execute_sell_signal_with_invalid_price_relationship(client):
     )
     assert response.status_code == 409, response.text
     assert "Invalid price relationship for sell signal" in response.text
+
+
+def test_execute_signal_sets_executed_at(client):
+    register_user(client, "user7@example.com", "Password123", "User Seven")
+    token = login_user(client, "user7@example.com", "Password123")
+
+    resources = create_base_resources(client, token)
+
+    response = execute_signal(client, token, resources["signal_id"])
+    assert response.status_code == 201, response.text
+
+    signal_response = client.get(
+        f"/signals/{resources['signal_id']}",
+        headers=auth_headers(token),
+    )
+    assert signal_response.status_code == 200, signal_response.text
+
+    signal_data = signal_response.json()
+    assert signal_data["status"] == "executed"
+    assert signal_data["executed_at"] is not None
+    assert signal_data["rejection_reason"] is None
+
+
+def test_cannot_execute_cancelled_signal(client):
+    register_user(client, "user8@example.com", "Password123", "User Eight")
+    token = login_user(client, "user8@example.com", "Password123")
+
+    resources = create_base_resources(client, token)
+
+    patch_signal = client.patch(
+        f"/signals/{resources['signal_id']}",
+        json={
+            "status": "cancelled",
+            "rejection_reason": "cancelled manually before execution",
+        },
+        headers=auth_headers(token),
+    )
+    assert patch_signal.status_code == 200, patch_signal.text
+
+    response = execute_signal(client, token, resources["signal_id"])
+    assert response.status_code == 409, response.text
+    assert "Only pending or triggered signals can be executed" in response.text
+
+    signal_response = client.get(
+        f"/signals/{resources['signal_id']}",
+        headers=auth_headers(token),
+    )
+    assert signal_response.status_code == 200, signal_response.text
+
+    signal_data = signal_response.json()
+    assert signal_data["status"] == "cancelled"
+    assert signal_data["rejection_reason"] == "cancelled manually before execution"
