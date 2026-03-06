@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel, ConfigDict, EmailStr
 
 
@@ -8,6 +10,14 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str
+
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+
+
+class UserRoleUpdate(BaseModel):
+    role: str
 
 
 class UserResponse(UserBase):
