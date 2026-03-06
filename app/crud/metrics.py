@@ -1,4 +1,5 @@
 from decimal import Decimal
+from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -36,29 +37,119 @@ def _build_metrics_from_query(base_query):
     }
 
 
-def get_overview_metrics(db: Session, owner_id: int | None = None):
+def _apply_trade_filters(
+    query,
+    owner_id: Optional[int] = None,
+    strategy_id: Optional[int] = None,
+    broker_account_id: Optional[int] = None,
+    portfolio_id: Optional[int] = None,
+    symbol: Optional[str] = None,
+    closed_from=None,
+    closed_to=None,
+):
+    if owner_id is not None:
+        query = query.filter(Trade.owner_id == owner_id)
+
+    if strategy_id is not None:
+        query = query.filter(Trade.strategy_id == strategy_id)
+
+    if broker_account_id is not None:
+        query = query.filter(Trade.broker_account_id == broker_account_id)
+
+    if portfolio_id is not None:
+        query = query.join(Trade.strategy).filter(Trade.strategy.has(portfolio_id=portfolio_id))
+
+    if symbol is not None:
+        query = query.filter(Trade.symbol == symbol)
+
+    if closed_from is not None:
+        query = query.filter(Trade.closed_at.is_not(None), Trade.closed_at >= closed_from)
+
+    if closed_to is not None:
+        query = query.filter(Trade.closed_at.is_not(None), Trade.closed_at <= closed_to)
+
+    return query
+
+
+def get_overview_metrics(
+    db: Session,
+    owner_id: int | None = None,
+    strategy_id: int | None = None,
+    broker_account_id: int | None = None,
+    portfolio_id: int | None = None,
+    symbol: str | None = None,
+    closed_from=None,
+    closed_to=None,
+):
     query = db.query(Trade)
-    if owner_id is not None:
-        query = query.filter(Trade.owner_id == owner_id)
+    query = _apply_trade_filters(
+        query,
+        owner_id=owner_id,
+        strategy_id=strategy_id,
+        broker_account_id=broker_account_id,
+        portfolio_id=portfolio_id,
+        symbol=symbol,
+        closed_from=closed_from,
+        closed_to=closed_to,
+    )
     return _build_metrics_from_query(query)
 
 
-def get_strategy_metrics(db: Session, strategy_id: int, owner_id: int | None = None):
-    query = db.query(Trade).filter(Trade.strategy_id == strategy_id)
-    if owner_id is not None:
-        query = query.filter(Trade.owner_id == owner_id)
+def get_strategy_metrics(
+    db: Session,
+    strategy_id: int,
+    owner_id: int | None = None,
+    symbol: str | None = None,
+    closed_from=None,
+    closed_to=None,
+):
+    query = db.query(Trade)
+    query = _apply_trade_filters(
+        query,
+        owner_id=owner_id,
+        strategy_id=strategy_id,
+        symbol=symbol,
+        closed_from=closed_from,
+        closed_to=closed_to,
+    )
     return _build_metrics_from_query(query)
 
 
-def get_broker_account_metrics(db: Session, broker_account_id: int, owner_id: int | None = None):
-    query = db.query(Trade).filter(Trade.broker_account_id == broker_account_id)
-    if owner_id is not None:
-        query = query.filter(Trade.owner_id == owner_id)
+def get_broker_account_metrics(
+    db: Session,
+    broker_account_id: int,
+    owner_id: int | None = None,
+    symbol: str | None = None,
+    closed_from=None,
+    closed_to=None,
+):
+    query = db.query(Trade)
+    query = _apply_trade_filters(
+        query,
+        owner_id=owner_id,
+        broker_account_id=broker_account_id,
+        symbol=symbol,
+        closed_from=closed_from,
+        closed_to=closed_to,
+    )
     return _build_metrics_from_query(query)
 
 
-def get_portfolio_metrics(db: Session, portfolio_id: int, owner_id: int | None = None):
-    query = db.query(Trade).join(Trade.strategy).filter(Trade.strategy.has(portfolio_id=portfolio_id))
-    if owner_id is not None:
-        query = query.filter(Trade.owner_id == owner_id)
+def get_portfolio_metrics(
+    db: Session,
+    portfolio_id: int,
+    owner_id: int | None = None,
+    symbol: str | None = None,
+    closed_from=None,
+    closed_to=None,
+):
+    query = db.query(Trade)
+    query = _apply_trade_filters(
+        query,
+        owner_id=owner_id,
+        portfolio_id=portfolio_id,
+        symbol=symbol,
+        closed_from=closed_from,
+        closed_to=closed_to,
+    )
     return _build_metrics_from_query(query)
