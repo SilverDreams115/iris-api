@@ -16,8 +16,35 @@ from app.database import get_db
 from app.models.user import User
 from app.schemas.strategy import StrategyCreate, StrategyResponse, StrategyUpdate
 
-
 router = APIRouter(prefix="/strategies", tags=["Strategies"])
+
+
+def _ensure_portfolio_and_broker_are_coherent(
+    db: Session,
+    portfolio_id: int,
+    broker_account_id: int,
+):
+    portfolio = get_portfolio_by_id(db, portfolio_id)
+    if not portfolio:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Portfolio not found",
+        )
+
+    broker_account = get_broker_account_by_id(db, broker_account_id)
+    if not broker_account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Broker account not found",
+        )
+
+    if portfolio.owner_id != broker_account.owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Portfolio and broker account must belong to the same owner",
+        )
+
+    return portfolio, broker_account
 
 
 @router.post("/", response_model=StrategyResponse, status_code=status.HTTP_201_CREATED)
@@ -26,19 +53,11 @@ def create_strategy_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    portfolio = get_portfolio_by_id(db, strategy_in.portfolio_id)
-    if not portfolio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Portfolio not found",
-        )
-
-    broker_account = get_broker_account_by_id(db, strategy_in.broker_account_id)
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
+    portfolio, broker_account = _ensure_portfolio_and_broker_are_coherent(
+        db,
+        strategy_in.portfolio_id,
+        strategy_in.broker_account_id,
+    )
 
     if current_user.role != "admin":
         if portfolio.owner_id != current_user.id:
@@ -46,7 +65,6 @@ def create_strategy_endpoint(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Portfolio does not belong to current user",
             )
-
         if broker_account.owner_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -65,7 +83,6 @@ def list_strategies(
 ):
     if current_user.role == "admin":
         return get_all_strategies(db, skip=skip, limit=limit)
-
     return get_strategies_by_owner(db, current_user.id, skip=skip, limit=limit)
 
 
@@ -111,27 +128,30 @@ def update_strategy_endpoint(
             detail="Not enough permissions",
         )
 
-    if strategy_in.portfolio_id is not None:
-        portfolio = get_portfolio_by_id(db, strategy_in.portfolio_id)
-        if not portfolio:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Portfolio not found",
-            )
-        if current_user.role != "admin" and portfolio.owner_id != current_user.id:
+    target_portfolio_id = (
+        strategy_in.portfolio_id
+        if strategy_in.portfolio_id is not None
+        else strategy.portfolio_id
+    )
+    target_broker_account_id = (
+        strategy_in.broker_account_id
+        if strategy_in.broker_account_id is not None
+        else strategy.broker_account_id
+    )
+
+    portfolio, broker_account = _ensure_portfolio_and_broker_are_coherent(
+        db,
+        target_portfolio_id,
+        target_broker_account_id,
+    )
+
+    if current_user.role != "admin":
+        if portfolio.owner_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Portfolio does not belong to current user",
             )
-
-    if strategy_in.broker_account_id is not None:
-        broker_account = get_broker_account_by_id(db, strategy_in.broker_account_id)
-        if not broker_account:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Broker account not found",
-            )
-        if current_user.role != "admin" and broker_account.owner_id != current_user.id:
+        if broker_account.owner_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Broker account does not belong to current user",

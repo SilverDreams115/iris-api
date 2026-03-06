@@ -27,31 +27,65 @@ from app.services.execution import execute_signal, reject_signal
 router = APIRouter(prefix="/signals", tags=["Signals"])
 
 
+def _ensure_strategy_and_trade_are_coherent(
+    db: Session,
+    strategy_id: int,
+    trade_id: int | None,
+):
+    strategy = get_strategy_by_id(db, strategy_id)
+    if not strategy:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Strategy not found",
+        )
+
+    trade = None
+    if trade_id is not None:
+        trade = get_trade_by_id(db, trade_id)
+        if not trade:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Trade not found",
+            )
+
+        if trade.owner_id != strategy.owner_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Trade and strategy must belong to the same owner",
+            )
+
+        if trade.strategy_id != strategy.id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Trade must belong to the provided strategy",
+            )
+
+    return strategy, trade
+
+
 @router.post("/", response_model=SignalResponse, status_code=status.HTTP_201_CREATED)
 def create_signal_endpoint(
     signal_in: SignalCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if signal_in.side not in {"buy", "sell"}:
-        raise HTTPException(status_code=400, detail="Invalid side")
+    strategy, trade = _ensure_strategy_and_trade_are_coherent(
+        db,
+        signal_in.strategy_id,
+        signal_in.trade_id,
+    )
 
-    if signal_in.status not in {"pending", "triggered", "executed", "cancelled", "rejected"}:
-        raise HTTPException(status_code=400, detail="Invalid status")
-
-    strategy = get_strategy_by_id(db, signal_in.strategy_id)
-    if not strategy:
-        raise HTTPException(status_code=404, detail="Strategy not found")
-
-    if current_user.role != "admin" and strategy.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Strategy does not belong to current user")
-
-    if signal_in.trade_id is not None:
-        trade = get_trade_by_id(db, signal_in.trade_id)
-        if not trade:
-            raise HTTPException(status_code=404, detail="Trade not found")
-        if current_user.role != "admin" and trade.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Trade does not belong to current user")
+    if current_user.role != "admin":
+        if strategy.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Strategy does not belong to current user",
+            )
+        if trade is not None and trade.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Trade does not belong to current user",
+            )
 
     return create_signal(db, current_user.id, signal_in)
 
@@ -107,7 +141,6 @@ def list_signals(
 ):
     if current_user.role == "admin":
         return get_all_signals(db, skip=skip, limit=limit)
-
     return get_signals_by_owner(db, current_user.id, skip=skip, limit=limit)
 
 
@@ -141,31 +174,34 @@ def update_signal_endpoint(
     if current_user.role != "admin" and signal.owner_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
-    if signal_in.side is not None and signal_in.side not in {"buy", "sell"}:
-        raise HTTPException(status_code=400, detail="Invalid side")
+    target_strategy_id = (
+        signal_in.strategy_id
+        if signal_in.strategy_id is not None
+        else signal.strategy_id
+    )
+    target_trade_id = (
+        signal_in.trade_id
+        if signal_in.trade_id is not None
+        else signal.trade_id
+    )
 
-    if signal_in.status is not None and signal_in.status not in {
-        "pending",
-        "triggered",
-        "executed",
-        "cancelled",
-        "rejected",
-    }:
-        raise HTTPException(status_code=400, detail="Invalid status")
+    strategy, trade = _ensure_strategy_and_trade_are_coherent(
+        db,
+        target_strategy_id,
+        target_trade_id,
+    )
 
-    if signal_in.strategy_id is not None:
-        strategy = get_strategy_by_id(db, signal_in.strategy_id)
-        if not strategy:
-            raise HTTPException(status_code=404, detail="Strategy not found")
-        if current_user.role != "admin" and strategy.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Strategy does not belong to current user")
-
-    if signal_in.trade_id is not None:
-        trade = get_trade_by_id(db, signal_in.trade_id)
-        if not trade:
-            raise HTTPException(status_code=404, detail="Trade not found")
-        if current_user.role != "admin" and trade.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Trade does not belong to current user")
+    if current_user.role != "admin":
+        if strategy.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Strategy does not belong to current user",
+            )
+        if trade is not None and trade.owner_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Trade does not belong to current user",
+            )
 
     return update_signal(db, signal, signal_in)
 
