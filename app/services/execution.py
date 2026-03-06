@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -6,6 +8,35 @@ from app.models.signal import Signal
 from app.models.strategy import Strategy
 from app.models.trade import Trade
 from app.schemas.signal import SignalExecuteRequest
+
+
+def _validate_execution_prices(signal: Signal, execution_in: SignalExecuteRequest) -> None:
+    entry_price: Decimal = execution_in.entry_price
+    stop_loss: Decimal | None = execution_in.stop_loss
+    take_profit: Decimal | None = execution_in.take_profit
+
+    if stop_loss is None or take_profit is None:
+        return
+
+    if signal.side == "buy":
+        if not (stop_loss < entry_price < take_profit):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Invalid price relationship for buy signal",
+            )
+
+    elif signal.side == "sell":
+        if not (take_profit < entry_price < stop_loss):
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Invalid price relationship for sell signal",
+            )
+
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Invalid signal side",
+        )
 
 
 def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteRequest) -> Trade:
@@ -68,6 +99,8 @@ def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteReque
             status_code=status.HTTP_409_CONFLICT,
             detail="Broker account is not active",
         )
+
+    _validate_execution_prices(signal, execution_in)
 
     trade = Trade(
         symbol=signal.symbol,

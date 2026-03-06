@@ -190,3 +190,95 @@ def test_cannot_execute_signal_if_broker_account_is_inactive(client):
     response = execute_signal(client, token, resources["signal_id"])
     assert response.status_code == 409, response.text
     assert "Broker account is not active" in response.text
+
+
+def test_cannot_execute_buy_signal_with_invalid_price_relationship(client):
+    register_user(client, "user5@example.com", "Password123", "User Five")
+    token = login_user(client, "user5@example.com", "Password123")
+
+    resources = create_base_resources(client, token, symbol="EURUSD")
+
+    response = client.post(
+        f"/signals/{resources['signal_id']}/execute",
+        json={
+            "volume": 0.10,
+            "entry_price": 1.0845,
+            "stop_loss": 1.0900,
+            "take_profit": 1.0800,
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert "Invalid price relationship for buy signal" in response.text
+
+
+def test_cannot_execute_sell_signal_with_invalid_price_relationship(client):
+    register_user(client, "user6@example.com", "Password123", "User Six")
+    token = login_user(client, "user6@example.com", "Password123")
+
+    portfolio = client.post(
+        "/portfolios/",
+        json={
+            "name": "Portfolio Sell Test",
+            "description": "portfolio de prueba sell",
+        },
+        headers=auth_headers(token),
+    )
+    assert portfolio.status_code == 201, portfolio.text
+    portfolio_id = portfolio.json()["id"]
+
+    broker = client.post(
+        "/broker-accounts/",
+        json={
+            "broker_name": "Demo Broker",
+            "account_label": "Cuenta Demo Sell",
+            "account_type": "demo",
+        },
+        headers=auth_headers(token),
+    )
+    assert broker.status_code == 201, broker.text
+    broker_id = broker.json()["id"]
+
+    strategy = client.post(
+        "/strategies/",
+        json={
+            "name": "Strategy Sell Test",
+            "symbol": "GBPUSD",
+            "timeframe": "H1",
+            "risk_percent": 1.5,
+            "portfolio_id": portfolio_id,
+            "broker_account_id": broker_id,
+        },
+        headers=auth_headers(token),
+    )
+    assert strategy.status_code == 201, strategy.text
+    strategy_id = strategy.json()["id"]
+
+    signal = client.post(
+        "/signals/",
+        json={
+            "symbol": "GBPUSD",
+            "side": "sell",
+            "confidence": 80,
+            "status": "pending",
+            "source": "manual",
+            "notes": "signal sell de prueba",
+            "strategy_id": strategy_id,
+        },
+        headers=auth_headers(token),
+    )
+    assert signal.status_code == 201, signal.text
+    signal_id = signal.json()["id"]
+
+    response = client.post(
+        f"/signals/{signal_id}/execute",
+        json={
+            "volume": 0.10,
+            "entry_price": 1.2500,
+            "stop_loss": 1.2400,
+            "take_profit": 1.2600,
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert "Invalid price relationship for sell signal" in response.text
