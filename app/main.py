@@ -1,10 +1,13 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from sqlalchemy import text
 
 from app.api.router import api_router
 from app.core.logging import configure_logging, get_logger
+from app.core.redis_client import redis_client
 from app.core.settings import settings
+from app.database import SessionLocal
 
 configure_logging()
 logger = get_logger(__name__)
@@ -32,3 +35,40 @@ def health_check():
         "app_name": settings.APP_NAME,
         "debug": settings.DEBUG,
     }
+
+
+@app.get("/ready")
+def readiness_check():
+    checks = {
+        "database": "ok",
+        "redis": "ok",
+    }
+
+    try:
+        with SessionLocal() as db:
+            db.execute(text("SELECT 1"))
+    except Exception as exc:
+        logger.exception("Database readiness check failed")
+        checks["database"] = f"error: {exc.__class__.__name__}"
+
+    try:
+        redis_client.ping()
+    except Exception as exc:
+        logger.exception("Redis readiness check failed")
+        checks["redis"] = f"error: {exc.__class__.__name__}"
+
+    if all(value == "ok" for value in checks.values()):
+        return {
+            "status": "ok",
+            "app_name": settings.APP_NAME,
+            "checks": checks,
+        }
+
+    raise HTTPException(
+        status_code=503,
+        detail={
+            "status": "error",
+            "app_name": settings.APP_NAME,
+            "checks": checks,
+        },
+    )
