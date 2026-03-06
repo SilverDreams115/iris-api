@@ -1,5 +1,14 @@
 from fastapi import FastAPI
-from app.api.v1.api import api_router
 
-app = FastAPI(title="backend-pro")
-app.include_router(api_router)
+from app.core.settings import settings
+
+
+app = FastAPI(
+    title=settings.APP_NAME,
+    debug=settings.DEBUG,
+)
+
+
+@app.get("/health", tags=["Health"])
+def healthcheck():
+    return {"status": "ok"}
