@@ -15,3 +15,4 @@ class User(Base):
     is_active = Column(Boolean, nullable=False, default=True)
 
     portfolios = relationship("Portfolio", back_populates="owner", cascade="all, delete-orphan")
+    broker_accounts = relationship("BrokerAccount", back_populates="owner", cascade="all, delete-orphan")
