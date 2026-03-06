@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.core.security import create_access_token, verify_password
-from app.crud.user import create_user, get_user_by_email
+from app.crud.user import change_user_password, create_user, get_user_by_email
 from app.database import get_db
 from app.models.user import User
-from app.schemas.auth import Token
+from app.schemas.auth import ChangePasswordRequest, Token
 from app.schemas.user import UserCreate, UserResponse
 
 
@@ -35,6 +35,12 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             detail="Invalid credentials",
         )
 
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Inactive user",
+        )
+
     access_token = create_access_token(subject=user.email, role=user.role)
 
     return {
@@ -46,3 +52,26 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @router.get("/me", response_model=UserResponse)
 def read_current_user(current_user: User = Depends(get_current_user)):
     return current_user
+
+
+@router.post("/change-password")
+def change_password(
+    password_in: ChangePasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    if not verify_password(password_in.current_password, current_user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Current password is incorrect",
+        )
+
+    if password_in.current_password == password_in.new_password:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="New password must be different from current password",
+        )
+
+    change_user_password(db, current_user, password_in.new_password)
+
+    return {"message": "Password updated successfully"}

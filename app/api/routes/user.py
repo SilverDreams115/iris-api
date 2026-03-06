@@ -6,6 +6,7 @@ from app.crud.user import (
     delete_user,
     get_user_by_id,
     get_users,
+    set_user_active_status,
     update_user,
     update_user_role,
 )
@@ -93,6 +94,38 @@ def update_user_role_endpoint(
         )
 
     return update_user_role(db, user, role_in.role)
+
+
+@router.patch("/{user_id}/deactivate", response_model=UserResponse)
+def deactivate_user_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return set_user_active_status(db, user, False)
+
+
+@router.patch("/{user_id}/activate", response_model=UserResponse)
+def activate_user_endpoint(
+    user_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_role("admin")),
+):
+    user = get_user_by_id(db, user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found",
+        )
+
+    return set_user_active_status(db, user, True)
 
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)

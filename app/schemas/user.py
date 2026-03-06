@@ -23,5 +23,6 @@ class UserRoleUpdate(BaseModel):
 class UserResponse(UserBase):
     id: int
     role: str
+    is_active: bool
 
     model_config = ConfigDict(from_attributes=True)

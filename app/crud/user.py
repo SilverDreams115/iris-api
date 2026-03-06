@@ -23,6 +23,7 @@ def create_user(db: Session, user_in: UserCreate, role: str = "user"):
         name=user_in.name,
         hashed_password=hash_password(user_in.password),
         role=role,
+        is_active=True,
     )
     db.add(db_user)
     db.commit()
@@ -46,6 +47,20 @@ def delete_user(db: Session, db_user: User):
 
 def update_user_role(db: Session, db_user: User, role: str):
     db_user.role = role
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def set_user_active_status(db: Session, db_user: User, is_active: bool):
+    db_user.is_active = is_active
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+
+def change_user_password(db: Session, db_user: User, new_password: str):
+    db_user.hashed_password = hash_password(new_password)
     db.commit()
     db.refresh(db_user)
     return db_user
