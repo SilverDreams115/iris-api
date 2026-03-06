@@ -19,7 +19,9 @@ def _conflict(detail: str) -> HTTPException:
     )
 
 
-def _validate_execution_prices(signal: Signal, execution_in: SignalExecuteRequest) -> None:
+def _validate_execution_prices(
+    signal: Signal, execution_in: SignalExecuteRequest
+) -> None:
     entry_price: Decimal = execution_in.entry_price
     stop_loss: Decimal = execution_in.stop_loss
     take_profit: Decimal = execution_in.take_profit
@@ -33,7 +35,9 @@ def _validate_execution_prices(signal: Signal, execution_in: SignalExecuteReques
             raise _conflict("Invalid price relationship for sell signal")
 
 
-def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteRequest) -> Trade:
+def execute_signal(
+    db: Session, signal: Signal, execution_in: SignalExecuteRequest
+) -> Trade:
     if signal.status not in {"pending", "triggered"}:
         logger.warning(
             "Signal execution rejected. signal_id=%s status=%s",

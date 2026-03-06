@@ -84,12 +84,18 @@ def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate):
         db_signal.status = signal_in.status.value
 
     if db_signal.status == SignalStatus.executed.value:
-        if previous_status != SignalStatus.executed.value or db_signal.executed_at is None:
+        if (
+            previous_status != SignalStatus.executed.value
+            or db_signal.executed_at is None
+        ):
             db_signal.executed_at = datetime.now(timezone.utc)
         db_signal.rejected_at = None
         db_signal.rejection_reason = None
 
-    elif db_signal.status in {SignalStatus.rejected.value, SignalStatus.cancelled.value}:
+    elif db_signal.status in {
+        SignalStatus.rejected.value,
+        SignalStatus.cancelled.value,
+    }:
         if previous_status != db_signal.status or db_signal.rejected_at is None:
             db_signal.rejected_at = datetime.now(timezone.utc)
         db_signal.executed_at = None

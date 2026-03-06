@@ -12,8 +12,14 @@ class BrokerAccount(Base):
     account_label = Column(String, nullable=False)
     account_type = Column(String, nullable=False)
     status = Column(String, nullable=False, default="active")
-    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    owner_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
 
     owner = relationship("User", back_populates="broker_accounts")
-    strategies = relationship("Strategy", back_populates="broker_account", cascade="all, delete-orphan")
-    trades = relationship("Trade", back_populates="broker_account", cascade="all, delete-orphan")
+    strategies = relationship(
+        "Strategy", back_populates="broker_account", cascade="all, delete-orphan"
+    )
+    trades = relationship(
+        "Trade", back_populates="broker_account", cascade="all, delete-orphan"
+    )

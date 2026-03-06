@@ -130,7 +130,9 @@ def test_other_user_cannot_update_signal(client):
     owner_token = login_user(client, "owner_signal@example.com", "Password123")
     resources = create_base_resources(client, owner_token)
 
-    register_user(client, "intruder_signal@example.com", "Password123", "Intruder Signal")
+    register_user(
+        client, "intruder_signal@example.com", "Password123", "Intruder Signal"
+    )
     intruder_token = login_user(client, "intruder_signal@example.com", "Password123")
 
     response = client.patch(
@@ -186,7 +188,9 @@ def test_other_user_cannot_delete_strategy(client):
     owner_token = login_user(client, "owner_strategy@example.com", "Password123")
     resources = create_base_resources(client, owner_token)
 
-    register_user(client, "intruder_strategy@example.com", "Password123", "Intruder Strategy")
+    register_user(
+        client, "intruder_strategy@example.com", "Password123", "Intruder Strategy"
+    )
     intruder_token = login_user(client, "intruder_strategy@example.com", "Password123")
 
     response = client.delete(

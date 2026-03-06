@@ -1,8 +1,6 @@
-from app.core.error_messages import (
-    NOT_ENOUGH_PERMISSIONS,
-    TRADE_STRATEGY_MISMATCH,
-    TRADE_STRATEGY_OWNER_MISMATCH,
-)
+from app.core.error_messages import (NOT_ENOUGH_PERMISSIONS,
+                                     TRADE_STRATEGY_MISMATCH,
+                                     TRADE_STRATEGY_OWNER_MISMATCH)
 from app.core.exceptions import bad_request, forbidden, not_found
 
 
@@ -12,7 +10,9 @@ def ensure_exists(resource, detail: str):
     return resource
 
 
-def ensure_owner_or_admin(current_user, owner_id: int, detail: str = NOT_ENOUGH_PERMISSIONS):
+def ensure_owner_or_admin(
+    current_user, owner_id: int, detail: str = NOT_ENOUGH_PERMISSIONS
+):
     if current_user.role != "admin" and current_user.id != owner_id:
         raise forbidden(detail)
 

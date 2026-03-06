@@ -55,7 +55,9 @@ def create_broker_account(client, token, label):
     return response.json()["id"]
 
 
-def create_strategy(client, token, portfolio_id, broker_account_id, name="Strategy A", symbol="EURUSD"):
+def create_strategy(
+    client, token, portfolio_id, broker_account_id, name="Strategy A", symbol="EURUSD"
+):
     response = client.post(
         "/strategies/",
         json={
@@ -137,7 +139,9 @@ def test_cannot_update_strategy_with_broker_from_different_owner(client):
     broker_account_id = create_broker_account(client, token_c, "Broker C")
     foreign_broker_account_id = create_broker_account(client, token_d, "Broker D")
 
-    strategy_response = create_strategy(client, token_c, portfolio_id, broker_account_id)
+    strategy_response = create_strategy(
+        client, token_c, portfolio_id, broker_account_id
+    )
     assert strategy_response.status_code == 201, strategy_response.text
     strategy_id = strategy_response.json()["id"]
 
@@ -160,18 +164,30 @@ def test_cannot_create_signal_with_trade_from_different_strategy(client):
     broker_account_id = create_broker_account(client, token, "Broker E")
 
     strategy_one = create_strategy(
-        client, token, portfolio_id, broker_account_id, name="Strategy One", symbol="EURUSD"
+        client,
+        token,
+        portfolio_id,
+        broker_account_id,
+        name="Strategy One",
+        symbol="EURUSD",
     )
     assert strategy_one.status_code == 201, strategy_one.text
     strategy_one_id = strategy_one.json()["id"]
 
     strategy_two = create_strategy(
-        client, token, portfolio_id, broker_account_id, name="Strategy Two", symbol="GBPUSD"
+        client,
+        token,
+        portfolio_id,
+        broker_account_id,
+        name="Strategy Two",
+        symbol="GBPUSD",
     )
     assert strategy_two.status_code == 201, strategy_two.text
     strategy_two_id = strategy_two.json()["id"]
 
-    trade_id = create_trade(client, token, strategy_one_id, broker_account_id, symbol="EURUSD")
+    trade_id = create_trade(
+        client, token, strategy_one_id, broker_account_id, symbol="EURUSD"
+    )
 
     response = create_signal(
         client,
@@ -192,20 +208,34 @@ def test_cannot_update_signal_with_trade_from_different_strategy(client):
     broker_account_id = create_broker_account(client, token, "Broker F")
 
     strategy_one = create_strategy(
-        client, token, portfolio_id, broker_account_id, name="Strategy F1", symbol="EURUSD"
+        client,
+        token,
+        portfolio_id,
+        broker_account_id,
+        name="Strategy F1",
+        symbol="EURUSD",
     )
     assert strategy_one.status_code == 201, strategy_one.text
     strategy_one_id = strategy_one.json()["id"]
 
     strategy_two = create_strategy(
-        client, token, portfolio_id, broker_account_id, name="Strategy F2", symbol="GBPUSD"
+        client,
+        token,
+        portfolio_id,
+        broker_account_id,
+        name="Strategy F2",
+        symbol="GBPUSD",
     )
     assert strategy_two.status_code == 201, strategy_two.text
     strategy_two_id = strategy_two.json()["id"]
 
-    trade_id = create_trade(client, token, strategy_one_id, broker_account_id, symbol="EURUSD")
+    trade_id = create_trade(
+        client, token, strategy_one_id, broker_account_id, symbol="EURUSD"
+    )
 
-    signal_response = create_signal(client, token, strategy_id=strategy_two_id, symbol="GBPUSD")
+    signal_response = create_signal(
+        client, token, strategy_id=strategy_two_id, symbol="GBPUSD"
+    )
     assert signal_response.status_code == 201, signal_response.text
     signal_id = signal_response.json()["id"]
 

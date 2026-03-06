@@ -12,7 +12,11 @@ BROKER_ACCOUNT_NOT_OWNED = "Broker account does not belong to current user"
 STRATEGY_NOT_OWNED = "Strategy does not belong to current user"
 TRADE_NOT_OWNED = "Trade does not belong to current user"
 
-PORTFOLIO_BROKER_OWNER_MISMATCH = "Portfolio and broker account must belong to the same owner"
-STRATEGY_BROKER_OWNER_MISMATCH = "Strategy and broker account must belong to the same owner"
+PORTFOLIO_BROKER_OWNER_MISMATCH = (
+    "Portfolio and broker account must belong to the same owner"
+)
+STRATEGY_BROKER_OWNER_MISMATCH = (
+    "Strategy and broker account must belong to the same owner"
+)
 TRADE_STRATEGY_OWNER_MISMATCH = "Trade and strategy must belong to the same owner"
 TRADE_STRATEGY_MISMATCH = "Trade must belong to the provided strategy"

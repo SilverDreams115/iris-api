@@ -4,7 +4,9 @@ from app.models.broker_account import BrokerAccount
 from app.schemas.broker_account import BrokerAccountCreate, BrokerAccountUpdate
 
 
-def create_broker_account(db: Session, owner_id: int, broker_account_in: BrokerAccountCreate):
+def create_broker_account(
+    db: Session, owner_id: int, broker_account_in: BrokerAccountCreate
+):
     db_broker_account = BrokerAccount(
         broker_name=broker_account_in.broker_name,
         account_label=broker_account_in.account_label,
@@ -22,7 +24,9 @@ def get_broker_account_by_id(db: Session, broker_account_id: int):
     return db.query(BrokerAccount).filter(BrokerAccount.id == broker_account_id).first()
 
 
-def get_broker_accounts_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
+def get_broker_accounts_by_owner(
+    db: Session, owner_id: int, skip: int = 0, limit: int = 100
+):
     return (
         db.query(BrokerAccount)
         .filter(BrokerAccount.owner_id == owner_id)
@@ -36,7 +40,11 @@ def get_all_broker_accounts(db: Session, skip: int = 0, limit: int = 100):
     return db.query(BrokerAccount).offset(skip).limit(limit).all()
 
 
-def update_broker_account(db: Session, db_broker_account: BrokerAccount, broker_account_in: BrokerAccountUpdate):
+def update_broker_account(
+    db: Session,
+    db_broker_account: BrokerAccount,
+    broker_account_in: BrokerAccountUpdate,
+):
     if broker_account_in.broker_name is not None:
         db_broker_account.broker_name = broker_account_in.broker_name
     if broker_account_in.account_label is not None:

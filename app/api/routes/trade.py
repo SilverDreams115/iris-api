@@ -2,42 +2,32 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.core.error_messages import (
-    BROKER_ACCOUNT_NOT_FOUND,
-    BROKER_ACCOUNT_NOT_OWNED,
-    NOT_ENOUGH_PERMISSIONS,
-    STRATEGY_BROKER_OWNER_MISMATCH,
-    STRATEGY_NOT_FOUND,
-    STRATEGY_NOT_OWNED,
-    TRADE_NOT_FOUND,
-)
+from app.core.error_messages import (BROKER_ACCOUNT_NOT_FOUND,
+                                     BROKER_ACCOUNT_NOT_OWNED,
+                                     NOT_ENOUGH_PERMISSIONS,
+                                     STRATEGY_BROKER_OWNER_MISMATCH,
+                                     STRATEGY_NOT_FOUND, STRATEGY_NOT_OWNED,
+                                     TRADE_NOT_FOUND)
 from app.core.exceptions import conflict, unprocessable
-from app.crud.trade import (
-    create_trade,
-    delete_trade,
-    get_all_trades,
-    get_broker_account_by_id,
-    get_strategy_by_id,
-    get_trade_by_id,
-    get_trades_by_owner,
-    update_trade,
-)
+from app.crud.trade import (create_trade, delete_trade, get_all_trades,
+                            get_broker_account_by_id, get_strategy_by_id,
+                            get_trade_by_id, get_trades_by_owner, update_trade)
 from app.database import get_db
 from app.models.user import User
 from app.schemas.enums import TradeStatus
-from app.schemas.trade import TradeCloseRequest, TradeCreate, TradeResponse, TradeUpdate
+from app.schemas.trade import (TradeCloseRequest, TradeCreate, TradeResponse,
+                               TradeUpdate)
 from app.services.trade_closer import close_trade
-from app.services.validators import (
-    ensure_exists,
-    ensure_owned_by_current_user,
-    ensure_owner_or_admin,
-    ensure_same_owner,
-)
+from app.services.validators import (ensure_exists,
+                                     ensure_owned_by_current_user,
+                                     ensure_owner_or_admin, ensure_same_owner)
 
 router = APIRouter(prefix="/trades", tags=["Trades"])
 
 
-def _ensure_strategy_and_broker_exist(db: Session, strategy_id: int, broker_account_id: int):
+def _ensure_strategy_and_broker_exist(
+    db: Session, strategy_id: int, broker_account_id: int
+):
     strategy = ensure_exists(
         get_strategy_by_id(db, strategy_id),
         STRATEGY_NOT_FOUND,
@@ -82,7 +72,9 @@ def create_trade_endpoint(
     return create_trade(db, current_user.id, trade_in)
 
 
-@router.post("/{trade_id}/close", response_model=TradeResponse, status_code=status.HTTP_200_OK)
+@router.post(
+    "/{trade_id}/close", response_model=TradeResponse, status_code=status.HTTP_200_OK
+)
 def close_trade_endpoint(
     trade_id: int,
     close_in: TradeCloseRequest,
@@ -127,7 +119,9 @@ def update_trade_endpoint(
     trade = ensure_exists(get_trade_by_id(db, trade_id), TRADE_NOT_FOUND)
     ensure_owner_or_admin(current_user, trade.owner_id, NOT_ENOUGH_PERMISSIONS)
 
-    target_strategy_id = trade_in.strategy_id if trade_in.strategy_id is not None else trade.strategy_id
+    target_strategy_id = (
+        trade_in.strategy_id if trade_in.strategy_id is not None else trade.strategy_id
+    )
     target_broker_account_id = (
         trade_in.broker_account_id
         if trade_in.broker_account_id is not None

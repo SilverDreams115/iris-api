@@ -2,41 +2,24 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.core.error_messages import (
-    NOT_ENOUGH_PERMISSIONS,
-    SIGNAL_NOT_FOUND,
-    STRATEGY_NOT_FOUND,
-    STRATEGY_NOT_OWNED,
-    TRADE_NOT_FOUND,
-    TRADE_NOT_OWNED,
-)
-from app.crud.signal import (
-    create_signal,
-    delete_signal,
-    get_all_signals,
-    get_signal_by_id,
-    get_signals_by_owner,
-    get_strategy_by_id,
-    get_trade_by_id,
-    update_signal,
-)
+from app.core.error_messages import (NOT_ENOUGH_PERMISSIONS, SIGNAL_NOT_FOUND,
+                                     STRATEGY_NOT_FOUND, STRATEGY_NOT_OWNED,
+                                     TRADE_NOT_FOUND, TRADE_NOT_OWNED)
+from app.crud.signal import (create_signal, delete_signal, get_all_signals,
+                             get_signal_by_id, get_signals_by_owner,
+                             get_strategy_by_id, get_trade_by_id,
+                             update_signal)
 from app.database import get_db
 from app.models.user import User
-from app.schemas.signal import (
-    SignalCreate,
-    SignalExecuteRequest,
-    SignalRejectRequest,
-    SignalResponse,
-    SignalUpdate,
-)
+from app.schemas.signal import (SignalCreate, SignalExecuteRequest,
+                                SignalRejectRequest, SignalResponse,
+                                SignalUpdate)
 from app.schemas.trade import TradeResponse
 from app.services.execution import execute_signal, reject_signal
-from app.services.validators import (
-    ensure_exists,
-    ensure_owned_by_current_user,
-    ensure_owner_or_admin,
-    ensure_trade_matches_strategy,
-)
+from app.services.validators import (ensure_exists,
+                                     ensure_owned_by_current_user,
+                                     ensure_owner_or_admin,
+                                     ensure_trade_matches_strategy)
 
 router = APIRouter(prefix="/signals", tags=["Signals"])
 
@@ -160,9 +143,7 @@ def update_signal_endpoint(
         else signal.strategy_id
     )
     target_trade_id = (
-        signal_in.trade_id
-        if signal_in.trade_id is not None
-        else signal.trade_id
+        signal_in.trade_id if signal_in.trade_id is not None else signal.trade_id
     )
 
     strategy, trade = _ensure_strategy_and_trade_are_coherent(

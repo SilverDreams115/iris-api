@@ -74,7 +74,9 @@ def create_base_resources(client, token, symbol="EURUSD", label_suffix="ADV"):
     }
 
 
-def create_trade(client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"):
+def create_trade(
+    client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"
+):
     response = client.post(
         "/trades/",
         json={

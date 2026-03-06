@@ -1,19 +1,17 @@
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
-from sqlalchemy.pool import StaticPool
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-
-from app.models.user import User  # noqa: F401
-from app.models.portfolio import Portfolio  # noqa: F401
 from app.models.broker_account import BrokerAccount  # noqa: F401
-from app.models.strategy import Strategy  # noqa: F401
+from app.models.portfolio import Portfolio  # noqa: F401
 from app.models.signal import Signal  # noqa: F401
+from app.models.strategy import Strategy  # noqa: F401
 from app.models.trade import Trade  # noqa: F401
-
+from app.models.user import User  # noqa: F401
 
 SQLALCHEMY_DATABASE_URL = "sqlite://"
 

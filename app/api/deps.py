@@ -7,11 +7,12 @@ from app.core.settings import settings
 from app.crud.user import get_user_by_email
 from app.database import get_db
 
-
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+def get_current_user(
+    db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)
+):
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
@@ -44,7 +45,7 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
 
 
 def require_role(required_role: str):
-    def role_checker(current_user = Depends(get_current_user)):
+    def role_checker(current_user=Depends(get_current_user)):
         if current_user.role != required_role:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

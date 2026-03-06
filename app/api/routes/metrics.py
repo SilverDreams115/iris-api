@@ -5,18 +5,13 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
 from app.crud.broker_account import get_broker_account_by_id
-from app.crud.metrics import (
-    get_broker_account_metrics,
-    get_overview_metrics,
-    get_portfolio_metrics,
-    get_strategy_metrics,
-)
+from app.crud.metrics import (get_broker_account_metrics, get_overview_metrics,
+                              get_portfolio_metrics, get_strategy_metrics)
 from app.crud.portfolio import get_portfolio_by_id
 from app.crud.strategy import get_strategy_by_id
 from app.database import get_db
 from app.models.user import User
 from app.schemas.metrics import MetricsResponse
-
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
 

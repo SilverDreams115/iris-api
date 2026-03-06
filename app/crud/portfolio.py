@@ -20,7 +20,9 @@ def get_portfolio_by_id(db: Session, portfolio_id: int):
     return db.query(Portfolio).filter(Portfolio.id == portfolio_id).first()
 
 
-def get_portfolios_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
+def get_portfolios_by_owner(
+    db: Session, owner_id: int, skip: int = 0, limit: int = 100
+):
     return (
         db.query(Portfolio)
         .filter(Portfolio.owner_id == owner_id)
@@ -34,7 +36,9 @@ def get_all_portfolios(db: Session, skip: int = 0, limit: int = 100):
     return db.query(Portfolio).offset(skip).limit(limit).all()
 
 
-def update_portfolio(db: Session, db_portfolio: Portfolio, portfolio_in: PortfolioUpdate):
+def update_portfolio(
+    db: Session, db_portfolio: Portfolio, portfolio_in: PortfolioUpdate
+):
     if portfolio_in.name is not None:
         db_portfolio.name = portfolio_in.name
 

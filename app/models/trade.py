@@ -19,9 +19,15 @@ class Trade(Base):
     pnl = Column(Numeric(18, 8), nullable=True)
     closed_at = Column(DateTime(timezone=True), nullable=True)
 
-    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
-    strategy_id = Column(Integer, ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False)
-    broker_account_id = Column(Integer, ForeignKey("broker_accounts.id", ondelete="CASCADE"), nullable=False)
+    owner_id = Column(
+        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
+    )
+    strategy_id = Column(
+        Integer, ForeignKey("strategies.id", ondelete="CASCADE"), nullable=False
+    )
+    broker_account_id = Column(
+        Integer, ForeignKey("broker_accounts.id", ondelete="CASCADE"), nullable=False
+    )
 
     owner = relationship("User", back_populates="trades")
     strategy = relationship("Strategy", back_populates="trades")

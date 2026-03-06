@@ -4,6 +4,7 @@ from fastapi import FastAPI
 
 from app.api.router import api_router
 from app.core.logging import configure_logging, get_logger
+from app.core.settings import settings
 
 configure_logging()
 logger = get_logger(__name__)
@@ -15,16 +16,19 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title="IRIS API", lifespan=lifespan)
-
+app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 app.include_router(api_router)
 
 
 @app.get("/")
 def root():
-    return {"message": "IRIS API is running"}
+    return {"message": f"{settings.APP_NAME} is running"}
 
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    return {
+        "status": "ok",
+        "app_name": settings.APP_NAME,
+        "debug": settings.DEBUG,
+    }

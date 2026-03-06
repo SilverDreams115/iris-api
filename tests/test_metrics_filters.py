@@ -74,7 +74,9 @@ def create_base_resources(client, token, symbol="EURUSD", label_suffix="A"):
     }
 
 
-def create_trade(client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"):
+def create_trade(
+    client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"
+):
     response = client.post(
         "/trades/",
         json={
@@ -116,9 +118,15 @@ def test_metrics_summary_can_filter_by_symbol(client):
     a = create_base_resources(client, token, symbol="EURUSD", label_suffix="A")
     b = create_base_resources(client, token, symbol="GBPUSD", label_suffix="B")
 
-    trade_a1 = create_trade(client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD")
-    trade_a2 = create_trade(client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD")
-    trade_b1 = create_trade(client, token, b["strategy_id"], b["broker_id"], symbol="GBPUSD")
+    trade_a1 = create_trade(
+        client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD"
+    )
+    trade_a2 = create_trade(
+        client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD"
+    )
+    trade_b1 = create_trade(
+        client, token, b["strategy_id"], b["broker_id"], symbol="GBPUSD"
+    )
 
     close_trade(client, token, trade_a1["id"], pnl=12.50)
     close_trade(client, token, trade_a2["id"], pnl=-2.50)
@@ -145,8 +153,12 @@ def test_metrics_summary_can_filter_by_broker_account_and_portfolio(client):
     a = create_base_resources(client, token, symbol="EURUSD", label_suffix="A")
     b = create_base_resources(client, token, symbol="USDJPY", label_suffix="B")
 
-    trade_a = create_trade(client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD")
-    trade_b = create_trade(client, token, b["strategy_id"], b["broker_id"], symbol="USDJPY")
+    trade_a = create_trade(
+        client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD"
+    )
+    trade_b = create_trade(
+        client, token, b["strategy_id"], b["broker_id"], symbol="USDJPY"
+    )
 
     close_trade(client, token, trade_a["id"], pnl=7.00)
     close_trade(client, token, trade_b["id"], pnl=13.00)
@@ -175,7 +187,9 @@ def test_metrics_summary_can_filter_by_closed_date_range(client):
     token = login_user(client, "filters3@example.com", "Password123")
 
     a = create_base_resources(client, token, symbol="EURUSD", label_suffix="A")
-    trade = create_trade(client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD")
+    trade = create_trade(
+        client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD"
+    )
     close_trade(client, token, trade["id"], pnl=11.00)
 
     in_range = client.get(

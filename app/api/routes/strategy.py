@@ -2,34 +2,23 @@ from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.core.error_messages import (
-    BROKER_ACCOUNT_NOT_FOUND,
-    BROKER_ACCOUNT_NOT_OWNED,
-    NOT_ENOUGH_PERMISSIONS,
-    PORTFOLIO_BROKER_OWNER_MISMATCH,
-    PORTFOLIO_NOT_FOUND,
-    PORTFOLIO_NOT_OWNED,
-    STRATEGY_NOT_FOUND,
-)
-from app.crud.strategy import (
-    create_strategy,
-    delete_strategy,
-    get_all_strategies,
-    get_broker_account_by_id,
-    get_portfolio_by_id,
-    get_strategies_by_owner,
-    get_strategy_by_id,
-    update_strategy,
-)
+from app.core.error_messages import (BROKER_ACCOUNT_NOT_FOUND,
+                                     BROKER_ACCOUNT_NOT_OWNED,
+                                     NOT_ENOUGH_PERMISSIONS,
+                                     PORTFOLIO_BROKER_OWNER_MISMATCH,
+                                     PORTFOLIO_NOT_FOUND, PORTFOLIO_NOT_OWNED,
+                                     STRATEGY_NOT_FOUND)
+from app.crud.strategy import (create_strategy, delete_strategy,
+                               get_all_strategies, get_broker_account_by_id,
+                               get_portfolio_by_id, get_strategies_by_owner,
+                               get_strategy_by_id, update_strategy)
 from app.database import get_db
 from app.models.user import User
-from app.schemas.strategy import StrategyCreate, StrategyResponse, StrategyUpdate
-from app.services.validators import (
-    ensure_exists,
-    ensure_owned_by_current_user,
-    ensure_owner_or_admin,
-    ensure_same_owner,
-)
+from app.schemas.strategy import (StrategyCreate, StrategyResponse,
+                                  StrategyUpdate)
+from app.services.validators import (ensure_exists,
+                                     ensure_owned_by_current_user,
+                                     ensure_owner_or_admin, ensure_same_owner)
 
 router = APIRouter(prefix="/strategies", tags=["Strategies"])
 

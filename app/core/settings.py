@@ -22,5 +22,13 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
+    @property
+    def database_url(self) -> str:
+        return self.DATABASE_URL
+
+    @property
+    def SECRET_KEY(self) -> str:
+        return self.JWT_SECRET_KEY
+
 
 settings = Settings()

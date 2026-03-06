@@ -2,18 +2,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.crud.portfolio import (
-    create_portfolio,
-    delete_portfolio,
-    get_all_portfolios,
-    get_portfolio_by_id,
-    get_portfolios_by_owner,
-    update_portfolio,
-)
+from app.crud.portfolio import (create_portfolio, delete_portfolio,
+                                get_all_portfolios, get_portfolio_by_id,
+                                get_portfolios_by_owner, update_portfolio)
 from app.database import get_db
 from app.models.user import User
-from app.schemas.portfolio import PortfolioCreate, PortfolioResponse, PortfolioUpdate
-
+from app.schemas.portfolio import (PortfolioCreate, PortfolioResponse,
+                                   PortfolioUpdate)
 
 router = APIRouter(prefix="/portfolios", tags=["Portfolios"])
 

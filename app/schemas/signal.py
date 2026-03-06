@@ -20,7 +20,10 @@ class SignalCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_create_payload(self):
-        if self.status in {SignalStatus.rejected, SignalStatus.cancelled} and not self.rejection_reason:
+        if (
+            self.status in {SignalStatus.rejected, SignalStatus.cancelled}
+            and not self.rejection_reason
+        ):
             raise ValueError("Rejected or cancelled signals require rejection_reason")
         return self
 
@@ -52,7 +55,10 @@ class SignalUpdate(BaseModel):
 
     @model_validator(mode="after")
     def validate_update_payload(self):
-        if self.status in {SignalStatus.rejected, SignalStatus.cancelled} and not self.rejection_reason:
+        if (
+            self.status in {SignalStatus.rejected, SignalStatus.cancelled}
+            and not self.rejection_reason
+        ):
             raise ValueError("Rejected or cancelled signals require rejection_reason")
         return self
 

@@ -2,27 +2,24 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
-from app.crud.broker_account import (
-    create_broker_account,
-    delete_broker_account,
-    get_all_broker_accounts,
-    get_broker_account_by_id,
-    get_broker_accounts_by_owner,
-    update_broker_account,
-)
+from app.crud.broker_account import (create_broker_account,
+                                     delete_broker_account,
+                                     get_all_broker_accounts,
+                                     get_broker_account_by_id,
+                                     get_broker_accounts_by_owner,
+                                     update_broker_account)
 from app.database import get_db
 from app.models.user import User
-from app.schemas.broker_account import (
-    BrokerAccountCreate,
-    BrokerAccountResponse,
-    BrokerAccountUpdate,
-)
-
+from app.schemas.broker_account import (BrokerAccountCreate,
+                                        BrokerAccountResponse,
+                                        BrokerAccountUpdate)
 
 router = APIRouter(prefix="/broker-accounts", tags=["Broker Accounts"])
 
 
-@router.post("/", response_model=BrokerAccountResponse, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/", response_model=BrokerAccountResponse, status_code=status.HTTP_201_CREATED
+)
 def create_broker_account_endpoint(
     broker_account_in: BrokerAccountCreate,
     db: Session = Depends(get_db),
