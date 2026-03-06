@@ -14,11 +14,35 @@ from app.crud.trade import (
 )
 from app.database import get_db
 from app.models.user import User
+from app.schemas.enums import TradeStatus
 from app.schemas.trade import TradeCloseRequest, TradeCreate, TradeResponse, TradeUpdate
 from app.services.trade_closer import close_trade
 
-
 router = APIRouter(prefix="/trades", tags=["Trades"])
+
+
+def _ensure_strategy_and_broker_exist(db: Session, strategy_id: int, broker_account_id: int):
+    strategy = get_strategy_by_id(db, strategy_id)
+    if not strategy:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Strategy not found",
+        )
+
+    broker_account = get_broker_account_by_id(db, broker_account_id)
+    if not broker_account:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Broker account not found",
+        )
+
+    if strategy.owner_id != broker_account.owner_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Strategy and broker account must belong to the same owner",
+        )
+
+    return strategy, broker_account
 
 
 @router.post("/", response_model=TradeResponse, status_code=status.HTTP_201_CREATED)
@@ -27,31 +51,11 @@ def create_trade_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if trade_in.side not in {"buy", "sell"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid side",
-        )
-
-    if trade_in.status not in {"open", "closed", "cancelled"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid status",
-        )
-
-    strategy = get_strategy_by_id(db, trade_in.strategy_id)
-    if not strategy:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Strategy not found",
-        )
-
-    broker_account = get_broker_account_by_id(db, trade_in.broker_account_id)
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
+    strategy, broker_account = _ensure_strategy_and_broker_exist(
+        db,
+        trade_in.strategy_id,
+        trade_in.broker_account_id,
+    )
 
     if current_user.role != "admin":
         if strategy.owner_id != current_user.id:
@@ -59,7 +63,6 @@ def create_trade_endpoint(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Strategy does not belong to current user",
             )
-
         if broker_account.owner_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -101,7 +104,6 @@ def list_trades(
 ):
     if current_user.role == "admin":
         return get_all_trades(db, skip=skip, limit=limit)
-
     return get_trades_by_owner(db, current_user.id, skip=skip, limit=limit)
 
 
@@ -147,45 +149,50 @@ def update_trade_endpoint(
             detail="Not enough permissions",
         )
 
-    if trade_in.side is not None and trade_in.side not in {"buy", "sell"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid side",
-        )
+    target_strategy_id = trade_in.strategy_id if trade_in.strategy_id is not None else trade.strategy_id
+    target_broker_account_id = (
+        trade_in.broker_account_id
+        if trade_in.broker_account_id is not None
+        else trade.broker_account_id
+    )
 
-    if trade_in.status is not None and trade_in.status not in {"open", "closed", "cancelled"}:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Invalid status",
-        )
+    strategy, broker_account = _ensure_strategy_and_broker_exist(
+        db,
+        target_strategy_id,
+        target_broker_account_id,
+    )
 
-    if trade_in.strategy_id is not None:
-        strategy = get_strategy_by_id(db, trade_in.strategy_id)
-        if not strategy:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Strategy not found",
-            )
-        if current_user.role != "admin" and strategy.owner_id != current_user.id:
+    if current_user.role != "admin":
+        if strategy.owner_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Strategy does not belong to current user",
             )
-
-    if trade_in.broker_account_id is not None:
-        broker_account = get_broker_account_by_id(db, trade_in.broker_account_id)
-        if not broker_account:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Broker account not found",
-            )
-        if current_user.role != "admin" and broker_account.owner_id != current_user.id:
+        if broker_account.owner_id != current_user.id:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Broker account does not belong to current user",
             )
 
-    return update_trade(db, trade, trade_in)
+    if trade_in.status == TradeStatus.closed:
+        if trade.status == TradeStatus.closed.value:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="Trade is already closed",
+            )
+        if trade_in.exit_price is None:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Closed trades require exit_price",
+            )
+
+    try:
+        return update_trade(db, trade, trade_in)
+    except ValueError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=str(exc),
+        ) from exc
 
 
 @router.delete("/{trade_id}", status_code=status.HTTP_204_NO_CONTENT)
