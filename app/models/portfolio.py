@@ -13,3 +13,4 @@ class Portfolio(Base):
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     owner = relationship("User", back_populates="portfolios")
+    strategies = relationship("Strategy", back_populates="portfolio", cascade="all, delete-orphan")

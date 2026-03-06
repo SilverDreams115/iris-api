@@ -7,6 +7,7 @@ from app.core.settings import settings
 from app.database import Base
 from app.models.broker_account import BrokerAccount
 from app.models.portfolio import Portfolio
+from app.models.strategy import Strategy
 from app.models.user import User
 
 config = context.config

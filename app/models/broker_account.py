@@ -15,3 +15,4 @@ class BrokerAccount(Base):
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     owner = relationship("User", back_populates="broker_accounts")
+    strategies = relationship("Strategy", back_populates="broker_account", cascade="all, delete-orphan")
