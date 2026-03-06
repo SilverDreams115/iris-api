@@ -40,6 +40,28 @@ def _validate_execution_prices(signal: Signal, execution_in: SignalExecuteReques
         )
 
 
+def reject_signal(db: Session, signal: Signal, rejection_reason: str) -> Signal:
+    if signal.status in {"executed", "cancelled", "rejected"}:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Only pending or triggered signals can be rejected",
+        )
+
+    if signal.trade_id is not None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Cannot reject a signal already associated with a trade",
+        )
+
+    signal.status = "rejected"
+    signal.rejected_at = datetime.now(timezone.utc)
+    signal.rejection_reason = rejection_reason
+
+    db.commit()
+    db.refresh(signal)
+    return signal
+
+
 def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteRequest) -> Trade:
     if signal.status not in {"pending", "triggered"}:
         raise HTTPException(
@@ -125,6 +147,7 @@ def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteReque
         signal.trade_id = trade.id
         signal.status = "executed"
         signal.executed_at = datetime.now(timezone.utc)
+        signal.rejected_at = None
         signal.rejection_reason = None
 
         db.commit()

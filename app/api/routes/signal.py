@@ -14,9 +14,15 @@ from app.crud.signal import (
 )
 from app.database import get_db
 from app.models.user import User
-from app.schemas.signal import SignalCreate, SignalExecuteRequest, SignalResponse, SignalUpdate
+from app.schemas.signal import (
+    SignalCreate,
+    SignalExecuteRequest,
+    SignalRejectRequest,
+    SignalResponse,
+    SignalUpdate,
+)
 from app.schemas.trade import TradeResponse
-from app.services.execution import execute_signal
+from app.services.execution import execute_signal, reject_signal
 
 router = APIRouter(prefix="/signals", tags=["Signals"])
 
@@ -30,7 +36,7 @@ def create_signal_endpoint(
     if signal_in.side not in {"buy", "sell"}:
         raise HTTPException(status_code=400, detail="Invalid side")
 
-    if signal_in.status not in {"pending", "triggered", "executed", "cancelled"}:
+    if signal_in.status not in {"pending", "triggered", "executed", "cancelled", "rejected"}:
         raise HTTPException(status_code=400, detail="Invalid status")
 
     strategy = get_strategy_by_id(db, signal_in.strategy_id)
@@ -69,6 +75,27 @@ def execute_signal_endpoint(
         raise HTTPException(status_code=403, detail="Not enough permissions")
 
     return execute_signal(db, signal, execution_in)
+
+
+@router.post(
+    "/{signal_id}/reject",
+    response_model=SignalResponse,
+    status_code=status.HTTP_200_OK,
+)
+def reject_signal_endpoint(
+    signal_id: int,
+    rejection_in: SignalRejectRequest,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    signal = get_signal_by_id(db, signal_id)
+    if not signal:
+        raise HTTPException(status_code=404, detail="Signal not found")
+
+    if current_user.role != "admin" and signal.owner_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+    return reject_signal(db, signal, rejection_in.rejection_reason)
 
 
 @router.get("/", response_model=list[SignalResponse])
@@ -122,6 +149,7 @@ def update_signal_endpoint(
         "triggered",
         "executed",
         "cancelled",
+        "rejected",
     }:
         raise HTTPException(status_code=400, detail="Invalid status")
 

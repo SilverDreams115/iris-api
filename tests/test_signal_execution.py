@@ -334,3 +334,56 @@ def test_cannot_execute_cancelled_signal(client):
     signal_data = signal_response.json()
     assert signal_data["status"] == "cancelled"
     assert signal_data["rejection_reason"] == "cancelled manually before execution"
+
+
+def test_reject_signal_sets_status_reason_and_timestamp(client):
+    register_user(client, "user9@example.com", "Password123", "User Nine")
+    token = login_user(client, "user9@example.com", "Password123")
+    resources = create_base_resources(client, token)
+
+    response = client.post(
+        f"/signals/{resources['signal_id']}/reject",
+        json={"rejection_reason": "spread too high"},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 200, response.text
+
+    data = response.json()
+    assert data["status"] == "rejected"
+    assert data["rejection_reason"] == "spread too high"
+    assert data["rejected_at"] is not None
+    assert data["trade_id"] is None
+
+
+def test_cannot_reject_executed_signal(client):
+    register_user(client, "user10@example.com", "Password123", "User Ten")
+    token = login_user(client, "user10@example.com", "Password123")
+    resources = create_base_resources(client, token)
+
+    executed = execute_signal(client, token, resources["signal_id"])
+    assert executed.status_code == 201, executed.text
+
+    response = client.post(
+        f"/signals/{resources['signal_id']}/reject",
+        json={"rejection_reason": "too late"},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert "Only pending or triggered signals can be rejected" in response.text
+
+
+def test_other_user_cannot_reject_signal(client):
+    register_user(client, "owner2@example.com", "Password123", "Owner Two")
+    owner_token = login_user(client, "owner2@example.com", "Password123")
+    resources = create_base_resources(client, owner_token)
+
+    register_user(client, "attacker2@example.com", "Password123", "Attacker Two")
+    attacker_token = login_user(client, "attacker2@example.com", "Password123")
+
+    response = client.post(
+        f"/signals/{resources['signal_id']}/reject",
+        json={"rejection_reason": "malicious attempt"},
+        headers=auth_headers(attacker_token),
+    )
+    assert response.status_code == 403, response.text
+    assert "Not enough permissions" in response.text

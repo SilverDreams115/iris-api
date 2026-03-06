@@ -15,6 +15,7 @@ class Signal(Base):
     source = Column(String, nullable=False, default="manual")
     notes = Column(Text, nullable=True)
     executed_at = Column(DateTime(timezone=True), nullable=True)
+    rejected_at = Column(DateTime(timezone=True), nullable=True)
     rejection_reason = Column(Text, nullable=True)
 
     owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)

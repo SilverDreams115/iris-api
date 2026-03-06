@@ -24,6 +24,10 @@ class SignalExecuteRequest(BaseModel):
     take_profit: Optional[Decimal] = Field(default=None, gt=0)
 
 
+class SignalRejectRequest(BaseModel):
+    rejection_reason: str = Field(min_length=3)
+
+
 class SignalUpdate(BaseModel):
     symbol: Optional[str] = None
     side: Optional[str] = None
@@ -45,6 +49,7 @@ class SignalResponse(BaseModel):
     source: str
     notes: Optional[str]
     executed_at: Optional[datetime]
+    rejected_at: Optional[datetime]
     rejection_reason: Optional[str]
     owner_id: int
     strategy_id: int
