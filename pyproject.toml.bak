@@ -1,9 +1,3 @@
-[project]
-name = "iris-api"
-version = "0.1.0"
-description = "IRIS API"
-requires-python = ">=3.11"
-
 [tool.black]
 line-length = 100
 target-version = ["py311"]
@@ -71,12 +65,3 @@ module = [
   "app.api.routes.*",
 ]
 disable_error_code = ["arg-type"]
-
-
-[tool.setuptools]
-package-dir = {"" = "."}
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["app*"]
-exclude = ["alembic*", "tests*"]
