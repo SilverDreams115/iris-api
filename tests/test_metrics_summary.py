@@ -32,7 +32,7 @@ def create_base_resources(client, token, symbol="EURUSD"):
     portfolio = client.post(
         "/portfolios/",
         json={
-            "name": "Portfolio Metrics",
+            "name": f"Portfolio Metrics {symbol}",
             "description": "portfolio metrics test",
         },
         headers=auth_headers(token),
@@ -44,7 +44,7 @@ def create_base_resources(client, token, symbol="EURUSD"):
         "/broker-accounts/",
         json={
             "broker_name": "Demo Broker",
-            "account_label": "Cuenta Metrics",
+            "account_label": f"Cuenta Metrics {symbol}",
             "account_type": "demo",
         },
         headers=auth_headers(token),

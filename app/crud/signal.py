@@ -9,7 +9,32 @@ from app.schemas.enums import SignalStatus
 from app.schemas.signal import SignalCreate, SignalUpdate
 
 
-def create_signal(db: Session, owner_id: int, signal_in: SignalCreate):
+def get_signal_by_id(db: Session, signal_id: int) -> Signal | None:
+    return db.query(Signal).filter(Signal.id == signal_id).first()
+
+
+def get_signals_by_owner(
+    db: Session,
+    owner_id: int,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[Signal]:
+    return db.query(Signal).filter(Signal.owner_id == owner_id).offset(skip).limit(limit).all()
+
+
+def get_all_signals(db: Session, skip: int = 0, limit: int = 100) -> list[Signal]:
+    return db.query(Signal).offset(skip).limit(limit).all()
+
+
+def get_strategy_by_id(db: Session, strategy_id: int) -> Strategy | None:
+    return db.query(Strategy).filter(Strategy.id == strategy_id).first()
+
+
+def get_trade_by_id(db: Session, trade_id: int) -> Trade | None:
+    return db.query(Trade).filter(Trade.id == trade_id).first()
+
+
+def create_signal(db: Session, owner_id: int, signal_in: SignalCreate) -> Signal:
     db_signal = Signal(
         symbol=signal_in.symbol,
         side=signal_in.side.value,
@@ -34,27 +59,7 @@ def create_signal(db: Session, owner_id: int, signal_in: SignalCreate):
     return db_signal
 
 
-def get_signal_by_id(db: Session, signal_id: int):
-    return db.query(Signal).filter(Signal.id == signal_id).first()
-
-
-def get_signals_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
-    return db.query(Signal).filter(Signal.owner_id == owner_id).offset(skip).limit(limit).all()
-
-
-def get_all_signals(db: Session, skip: int = 0, limit: int = 100):
-    return db.query(Signal).offset(skip).limit(limit).all()
-
-
-def get_strategy_by_id(db: Session, strategy_id: int):
-    return db.query(Strategy).filter(Strategy.id == strategy_id).first()
-
-
-def get_trade_by_id(db: Session, trade_id: int):
-    return db.query(Trade).filter(Trade.id == trade_id).first()
-
-
-def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate):
+def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate) -> Signal:
     previous_status = db_signal.status
 
     if signal_in.symbol is not None:
@@ -101,6 +106,6 @@ def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate):
     return db_signal
 
 
-def delete_signal(db: Session, db_signal: Signal):
+def delete_signal(db: Session, db_signal: Signal) -> None:
     db.delete(db_signal)
     db.commit()

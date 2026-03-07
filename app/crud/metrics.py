@@ -6,10 +6,6 @@ from sqlalchemy.orm import Session
 from app.models.trade import Trade
 
 
-def _q(value) -> Decimal:
-    return Decimal(str(value or 0)).quantize(Decimal("0.01"))
-
-
 def _apply_trade_filters(
     query,
     owner_id: int | None = None,
@@ -33,7 +29,7 @@ def _apply_trade_filters(
         query = query.join(Trade.strategy).filter(Trade.strategy.has(portfolio_id=portfolio_id))
 
     if symbol is not None:
-        query = query.filter(Trade.symbol == symbol)
+        query = query.filter(Trade.symbol == symbol.strip().upper())
 
     if closed_from is not None:
         query = query.filter(Trade.closed_at.is_not(None), Trade.closed_at >= closed_from)

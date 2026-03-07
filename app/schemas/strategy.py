@@ -1,6 +1,6 @@
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.enums import StrategyTimeframe
 
@@ -13,6 +13,22 @@ class StrategyCreate(BaseModel):
     portfolio_id: int
     broker_account_id: int
 
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Strategy name cannot be empty")
+        return value
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Strategy symbol cannot be empty")
+        return value
+
 
 class StrategyUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=255)
@@ -22,6 +38,26 @@ class StrategyUpdate(BaseModel):
     is_active: bool | None = None
     portfolio_id: int | None = None
     broker_account_id: int | None = None
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("Strategy name cannot be empty")
+        return value
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Strategy symbol cannot be empty")
+        return value
 
 
 class StrategyResponse(BaseModel):

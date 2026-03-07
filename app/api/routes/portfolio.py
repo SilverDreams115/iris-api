@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.error_messages import NOT_ENOUGH_PERMISSIONS, PORTFOLIO_NOT_FOUND
 from app.crud.portfolio import (
     create_portfolio,
     delete_portfolio,
@@ -13,6 +14,7 @@ from app.crud.portfolio import (
 from app.database import get_db
 from app.models.user import User
 from app.schemas.portfolio import PortfolioCreate, PortfolioResponse, PortfolioUpdate
+from app.services.validators import ensure_access_to_resource, ensure_exists
 
 router = APIRouter(prefix="/portfolios", tags=["Portfolios"])
 
@@ -45,19 +47,8 @@ def get_portfolio_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Portfolio not found",
-        )
-
-    if current_user.role != "admin" and portfolio.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    portfolio = ensure_exists(get_portfolio_by_id(db, portfolio_id), PORTFOLIO_NOT_FOUND)
+    ensure_access_to_resource(current_user, portfolio, NOT_ENOUGH_PERMISSIONS)
     return portfolio
 
 
@@ -68,19 +59,8 @@ def update_portfolio_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Portfolio not found",
-        )
-
-    if current_user.role != "admin" and portfolio.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    portfolio = ensure_exists(get_portfolio_by_id(db, portfolio_id), PORTFOLIO_NOT_FOUND)
+    ensure_access_to_resource(current_user, portfolio, NOT_ENOUGH_PERMISSIONS)
     return update_portfolio(db, portfolio, portfolio_in)
 
 
@@ -90,18 +70,7 @@ def delete_portfolio_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Portfolio not found",
-        )
-
-    if current_user.role != "admin" and portfolio.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    portfolio = ensure_exists(get_portfolio_by_id(db, portfolio_id), PORTFOLIO_NOT_FOUND)
+    ensure_access_to_resource(current_user, portfolio, NOT_ENOUGH_PERMISSIONS)
     delete_portfolio(db, portfolio)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

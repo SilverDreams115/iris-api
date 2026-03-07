@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.enums import SignalSide, SignalSource, SignalStatus
 
@@ -16,6 +16,22 @@ class SignalCreate(BaseModel):
     strategy_id: int
     trade_id: int | None = None
     rejection_reason: str | None = Field(default=None, min_length=1, max_length=500)
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Signal symbol cannot be empty")
+        return value
+
+    @field_validator("notes", "rejection_reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
     @model_validator(mode="after")
     def validate_create_payload(self):
@@ -35,10 +51,34 @@ class SignalExecuteRequest(BaseModel):
     notes: str | None = None
     trade_id: int | None = None
 
+    @field_validator("notes")
+    @classmethod
+    def normalize_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
+
 
 class SignalRejectRequest(BaseModel):
     rejection_reason: str = Field(min_length=1, max_length=500)
     notes: str | None = None
+
+    @field_validator("rejection_reason")
+    @classmethod
+    def normalize_rejection_reason(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Rejection reason cannot be empty")
+        return value
+
+    @field_validator("notes")
+    @classmethod
+    def normalize_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
 
 class SignalUpdate(BaseModel):
@@ -51,6 +91,24 @@ class SignalUpdate(BaseModel):
     strategy_id: int | None = None
     trade_id: int | None = None
     rejection_reason: str | None = Field(default=None, min_length=1, max_length=500)
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Signal symbol cannot be empty")
+        return value
+
+    @field_validator("notes", "rejection_reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
     @model_validator(mode="after")
     def validate_update_payload(self):

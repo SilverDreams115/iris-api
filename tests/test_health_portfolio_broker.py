@@ -315,3 +315,142 @@ def test_admin_can_list_all_broker_accounts(client):
     labels = {item["account_label"] for item in response.json()}
     assert "Broker One" in labels
     assert "Broker Two" in labels
+
+
+def test_owner_cannot_create_duplicate_portfolio_name(client):
+    register_user(client, "portfolio_dup@example.com", "Password123", "Portfolio Dup")
+    token = login_user(client, "portfolio_dup@example.com", "Password123")
+
+    create_portfolio(client, token, name="Primary Portfolio")
+
+    response = client.post(
+        "/portfolios/",
+        json={
+            "name": "Primary Portfolio",
+            "description": "Duplicate attempt",
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == "Portfolio name already exists for this user"
+
+
+def test_different_users_can_use_same_portfolio_name(client):
+    register_user(client, "portfolio_dup_a@example.com", "Password123", "Portfolio Dup A")
+    token_a = login_user(client, "portfolio_dup_a@example.com", "Password123")
+    create_portfolio(client, token_a, name="Shared Name")
+
+    register_user(client, "portfolio_dup_b@example.com", "Password123", "Portfolio Dup B")
+    token_b = login_user(client, "portfolio_dup_b@example.com", "Password123")
+
+    response = client.post(
+        "/portfolios/",
+        json={
+            "name": "Shared Name",
+            "description": "Allowed for another owner",
+        },
+        headers=auth_headers(token_b),
+    )
+    assert response.status_code == 201, response.text
+
+
+def test_owner_cannot_rename_portfolio_to_duplicate_name(client):
+    register_user(client, "portfolio_rename_dup@example.com", "Password123", "Portfolio Rename Dup")
+    token = login_user(client, "portfolio_rename_dup@example.com", "Password123")
+
+    one = create_portfolio(client, token, name="Portfolio One")
+    create_portfolio(client, token, name="Portfolio Two")
+
+    response = client.patch(
+        f"/portfolios/{one['id']}",
+        json={"name": "Portfolio Two"},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == "Portfolio name already exists for this user"
+
+
+def test_portfolio_name_cannot_be_blank_spaces(client):
+    register_user(client, "portfolio_blank@example.com", "Password123", "Portfolio Blank")
+    token = login_user(client, "portfolio_blank@example.com", "Password123")
+
+    response = client.post(
+        "/portfolios/",
+        json={
+            "name": "   ",
+            "description": "Invalid",
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 422, response.text
+
+
+def test_owner_cannot_create_duplicate_broker_account_label(client):
+    register_user(client, "broker_dup@example.com", "Password123", "Broker Dup")
+    token = login_user(client, "broker_dup@example.com", "Password123")
+
+    create_broker_account(client, token, account_label="Primary Account")
+
+    response = client.post(
+        "/broker-accounts/",
+        json={
+            "broker_name": "Demo Broker",
+            "account_label": "Primary Account",
+            "account_type": "demo",
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == "Broker account label already exists for this user"
+
+
+def test_different_users_can_use_same_broker_account_label(client):
+    register_user(client, "broker_dup_a@example.com", "Password123", "Broker Dup A")
+    token_a = login_user(client, "broker_dup_a@example.com", "Password123")
+    create_broker_account(client, token_a, account_label="Shared Label")
+
+    register_user(client, "broker_dup_b@example.com", "Password123", "Broker Dup B")
+    token_b = login_user(client, "broker_dup_b@example.com", "Password123")
+
+    response = client.post(
+        "/broker-accounts/",
+        json={
+            "broker_name": "Another Broker",
+            "account_label": "Shared Label",
+            "account_type": "demo",
+        },
+        headers=auth_headers(token_b),
+    )
+    assert response.status_code == 201, response.text
+
+
+def test_owner_cannot_rename_broker_account_to_duplicate_label(client):
+    register_user(client, "broker_rename_dup@example.com", "Password123", "Broker Rename Dup")
+    token = login_user(client, "broker_rename_dup@example.com", "Password123")
+
+    one = create_broker_account(client, token, account_label="Broker One")
+    create_broker_account(client, token, account_label="Broker Two")
+
+    response = client.patch(
+        f"/broker-accounts/{one['id']}",
+        json={"account_label": "Broker Two"},
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 409, response.text
+    assert response.json()["detail"] == "Broker account label already exists for this user"
+
+
+def test_broker_account_fields_cannot_be_blank_spaces(client):
+    register_user(client, "broker_blank@example.com", "Password123", "Broker Blank")
+    token = login_user(client, "broker_blank@example.com", "Password123")
+
+    response = client.post(
+        "/broker-accounts/",
+        json={
+            "broker_name": "   ",
+            "account_label": "   ",
+            "account_type": "demo",
+        },
+        headers=auth_headers(token),
+    )
+    assert response.status_code == 422, response.text

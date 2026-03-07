@@ -1,9 +1,27 @@
 from datetime import datetime
 from decimal import Decimal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.enums import TradeSide, TradeStatus
+
+
+def _validate_price_relationship(
+    side: TradeSide | None,
+    entry_price: Decimal | None,
+    stop_loss: Decimal | None,
+    take_profit: Decimal | None,
+) -> None:
+    if side is None or entry_price is None or stop_loss is None or take_profit is None:
+        return
+
+    if side == TradeSide.buy:
+        if not (stop_loss < entry_price < take_profit):
+            raise ValueError("Invalid price relationship for buy trade")
+
+    elif side == TradeSide.sell:
+        if not (take_profit < entry_price < stop_loss):
+            raise ValueError("Invalid price relationship for sell trade")
 
 
 class TradeCreate(BaseModel):
@@ -19,10 +37,25 @@ class TradeCreate(BaseModel):
     strategy_id: int
     broker_account_id: int
 
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Trade symbol cannot be empty")
+        return value
+
     @model_validator(mode="after")
     def validate_closed_trade_payload(self):
         if self.status == TradeStatus.closed and self.exit_price is None:
             raise ValueError("Closed trades require exit_price")
+
+        _validate_price_relationship(
+            self.side,
+            self.entry_price,
+            self.stop_loss,
+            self.take_profit,
+        )
         return self
 
 
@@ -44,10 +77,27 @@ class TradeUpdate(BaseModel):
     strategy_id: int | None = None
     broker_account_id: int | None = None
 
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Trade symbol cannot be empty")
+        return value
+
     @model_validator(mode="after")
     def validate_update_payload(self):
         if self.status == TradeStatus.closed and self.exit_price is None:
             raise ValueError("Closed trades require exit_price")
+
+        _validate_price_relationship(
+            self.side,
+            self.entry_price,
+            self.stop_loss,
+            self.take_profit,
+        )
         return self
 
 

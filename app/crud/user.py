@@ -5,19 +5,19 @@ from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 
 
-def get_user_by_id(db: Session, user_id: int):
+def get_user_by_id(db: Session, user_id: int) -> User | None:
     return db.query(User).filter(User.id == user_id).first()
 
 
-def get_user_by_email(db: Session, email: str):
+def get_user_by_email(db: Session, email: str) -> User | None:
     return db.query(User).filter(User.email == email).first()
 
 
-def get_users(db: Session, skip: int = 0, limit: int = 100):
+def get_users(db: Session, skip: int = 0, limit: int = 100) -> list[User]:
     return db.query(User).offset(skip).limit(limit).all()
 
 
-def create_user(db: Session, user_in: UserCreate, role: str = "user"):
+def create_user(db: Session, user_in: UserCreate, role: str = "user") -> User:
     db_user = User(
         email=user_in.email,
         name=user_in.name,
@@ -31,7 +31,7 @@ def create_user(db: Session, user_in: UserCreate, role: str = "user"):
     return db_user
 
 
-def update_user(db: Session, db_user: User, user_in: UserUpdate):
+def update_user(db: Session, db_user: User, user_in: UserUpdate) -> User:
     if user_in.name is not None:
         db_user.name = user_in.name
 
@@ -40,26 +40,26 @@ def update_user(db: Session, db_user: User, user_in: UserUpdate):
     return db_user
 
 
-def delete_user(db: Session, db_user: User):
+def delete_user(db: Session, db_user: User) -> None:
     db.delete(db_user)
     db.commit()
 
 
-def update_user_role(db: Session, db_user: User, role: str):
+def update_user_role(db: Session, db_user: User, role: str) -> User:
     db_user.role = role
     db.commit()
     db.refresh(db_user)
     return db_user
 
 
-def set_user_active_status(db: Session, db_user: User, is_active: bool):
+def set_user_active_status(db: Session, db_user: User, is_active: bool) -> User:
     db_user.is_active = is_active
     db.commit()
     db.refresh(db_user)
     return db_user
 
 
-def change_user_password(db: Session, db_user: User, new_password: str):
+def change_user_password(db: Session, db_user: User, new_password: str) -> User:
     db_user.hashed_password = hash_password(new_password)
     db.commit()
     db.refresh(db_user)

@@ -1,15 +1,34 @@
 from datetime import UTC, datetime
+from decimal import Decimal
 
 from sqlalchemy.orm import Session
 
 from app.models.broker_account import BrokerAccount
 from app.models.strategy import Strategy
 from app.models.trade import Trade
-from app.schemas.enums import TradeStatus
+from app.schemas.enums import TradeSide, TradeStatus
 from app.schemas.trade import TradeCreate, TradeUpdate
 
 
-def create_trade(db: Session, owner_id: int, trade_in: TradeCreate):
+def _validate_trade_price_relationship(
+    side: str,
+    entry_price: Decimal | None,
+    stop_loss: Decimal | None,
+    take_profit: Decimal | None,
+) -> None:
+    if entry_price is None or stop_loss is None or take_profit is None:
+        return
+
+    if side == TradeSide.buy.value:
+        if not (stop_loss < entry_price < take_profit):
+            raise ValueError("Invalid price relationship for buy trade")
+
+    elif side == TradeSide.sell.value:
+        if not (take_profit < entry_price < stop_loss):
+            raise ValueError("Invalid price relationship for sell trade")
+
+
+def create_trade(db: Session, owner_id: int, trade_in: TradeCreate) -> Trade:
     db_trade = Trade(
         symbol=trade_in.symbol,
         side=trade_in.side.value,
@@ -25,6 +44,13 @@ def create_trade(db: Session, owner_id: int, trade_in: TradeCreate):
         broker_account_id=trade_in.broker_account_id,
     )
 
+    _validate_trade_price_relationship(
+        db_trade.side,
+        db_trade.entry_price,
+        db_trade.stop_loss,
+        db_trade.take_profit,
+    )
+
     if trade_in.status == TradeStatus.closed:
         db_trade.closed_at = datetime.now(UTC)
 
@@ -34,27 +60,32 @@ def create_trade(db: Session, owner_id: int, trade_in: TradeCreate):
     return db_trade
 
 
-def get_trade_by_id(db: Session, trade_id: int):
+def get_trade_by_id(db: Session, trade_id: int) -> Trade | None:
     return db.query(Trade).filter(Trade.id == trade_id).first()
 
 
-def get_trades_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
+def get_trades_by_owner(
+    db: Session,
+    owner_id: int,
+    skip: int = 0,
+    limit: int = 100,
+) -> list[Trade]:
     return db.query(Trade).filter(Trade.owner_id == owner_id).offset(skip).limit(limit).all()
 
 
-def get_all_trades(db: Session, skip: int = 0, limit: int = 100):
+def get_all_trades(db: Session, skip: int = 0, limit: int = 100) -> list[Trade]:
     return db.query(Trade).offset(skip).limit(limit).all()
 
 
-def get_strategy_by_id(db: Session, strategy_id: int):
+def get_strategy_by_id(db: Session, strategy_id: int) -> Strategy | None:
     return db.query(Strategy).filter(Strategy.id == strategy_id).first()
 
 
-def get_broker_account_by_id(db: Session, broker_account_id: int):
+def get_broker_account_by_id(db: Session, broker_account_id: int) -> BrokerAccount | None:
     return db.query(BrokerAccount).filter(BrokerAccount.id == broker_account_id).first()
 
 
-def update_trade(db: Session, db_trade: Trade, trade_in: TradeUpdate):
+def update_trade(db: Session, db_trade: Trade, trade_in: TradeUpdate) -> Trade:
     previous_status = db_trade.status
 
     if trade_in.symbol is not None:
@@ -78,6 +109,13 @@ def update_trade(db: Session, db_trade: Trade, trade_in: TradeUpdate):
     if trade_in.broker_account_id is not None:
         db_trade.broker_account_id = trade_in.broker_account_id
 
+    _validate_trade_price_relationship(
+        db_trade.side,
+        db_trade.entry_price,
+        db_trade.stop_loss,
+        db_trade.take_profit,
+    )
+
     if trade_in.status is not None:
         db_trade.status = trade_in.status.value
 
@@ -94,6 +132,6 @@ def update_trade(db: Session, db_trade: Trade, trade_in: TradeUpdate):
     return db_trade
 
 
-def delete_trade(db: Session, db_trade: Trade):
+def delete_trade(db: Session, db_trade: Trade) -> None:
     db.delete(db_trade)
     db.commit()

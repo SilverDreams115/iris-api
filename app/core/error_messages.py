@@ -8,8 +8,11 @@ TRADE_NOT_FOUND = "Trade not found"
 SIGNAL_NOT_FOUND = "Signal not found"
 
 PORTFOLIO_NOT_OWNED = "Portfolio does not belong to current user"
+PORTFOLIO_NAME_ALREADY_EXISTS = "Portfolio name already exists for this user"
 BROKER_ACCOUNT_NOT_OWNED = "Broker account does not belong to current user"
+BROKER_ACCOUNT_LABEL_ALREADY_EXISTS = "Broker account label already exists for this user"
 STRATEGY_NOT_OWNED = "Strategy does not belong to current user"
+STRATEGY_NAME_ALREADY_EXISTS = "Strategy name already exists for this user"
 TRADE_NOT_OWNED = "Trade does not belong to current user"
 
 PORTFOLIO_BROKER_OWNER_MISMATCH = "Portfolio and broker account must belong to the same owner"
