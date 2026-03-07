@@ -13,7 +13,7 @@ on:
       - develop
 
 jobs:
-  test:
+  quality-and-test:
     runs-on: ubuntu-latest
 
     services:
@@ -55,13 +55,22 @@ jobs:
           cat > .env <<'EOT'
           APP_NAME=IRIS API
           ENVIRONMENT=testing
-          DEBUG=False
+          DEBUG=false
           DATABASE_URL=postgresql+psycopg2://test_user:test_pass@localhost:5432/test_db
           REDIS_URL=redis://localhost:6379/0
           JWT_SECRET_KEY=this_is_a_test_secret_key_that_is_long_enough
           JWT_ALGORITHM=HS256
           ACCESS_TOKEN_EXPIRE_MINUTES=30
+          CORS_ORIGINS=["http://localhost:3000","http://127.0.0.1:3000"]
           EOT
+
+      - name: Run Ruff
+        run: |
+          ruff check app
+
+      - name: Run MyPy
+        run: |
+          mypy app
 
       - name: Run tests
         run: |

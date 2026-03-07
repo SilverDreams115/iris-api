@@ -6,9 +6,10 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
 COPY requirements/base.txt ./requirements/base.txt
+COPY requirements/dev.txt ./requirements/dev.txt
 
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements/base.txt
+    pip install --no-cache-dir -r requirements/dev.txt
 
 COPY app ./app
 COPY alembic ./alembic
