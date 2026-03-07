@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_active_user
 from app.core.logging import get_logger
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, verify_password, verify_password_and_update
 from app.crud.user import change_user_password, create_user, get_user_by_email
 from app.database import get_db
 from app.models.user import User
@@ -44,7 +44,12 @@ def login(
             detail="Invalid credentials",
         )
 
-    if not verify_password(form_data.password, user.hashed_password):
+    is_valid_password, updated_hash = verify_password_and_update(
+        form_data.password,
+        user.hashed_password,
+    )
+
+    if not is_valid_password:
         logger.warning("Login failed, invalid password for: %s", user.email)
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -57,6 +62,13 @@ def login(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Inactive user",
         )
+
+    if updated_hash:
+        user.hashed_password = updated_hash  # type: ignore[assignment]
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+        logger.info("Password hash upgraded to Argon2 for user: %s", user.email)
 
     access_token = create_access_token(subject=user.email, role=user.role)
     logger.info("Login successful for user: %s", user.email)

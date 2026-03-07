@@ -16,7 +16,13 @@ logger = get_logger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    logger.info("IRIS API startup completed")
+    logger.info(
+        "IRIS API startup completed",
+        extra={
+            "environment": settings.ENVIRONMENT,
+            "cors_origins": settings.CORS_ORIGINS,
+        },
+    )
     yield
 
 
@@ -24,10 +30,7 @@ app = FastAPI(title=settings.APP_NAME, lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-    ],
+    allow_origins=settings.CORS_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -47,6 +50,7 @@ def health_check():
         "status": "ok",
         "app_name": settings.APP_NAME,
         "debug": settings.DEBUG,
+        "environment": settings.ENVIRONMENT,
     }
 
 

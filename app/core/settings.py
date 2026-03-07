@@ -1,3 +1,5 @@
+from typing import Any
+
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +15,11 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+
+    CORS_ORIGINS: list[str] = [
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -35,6 +42,15 @@ class Settings(BaseSettings):
         if value not in allowed:
             raise ValueError(f"ENVIRONMENT must be one of: {', '.join(sorted(allowed))}")
         return value
+
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
+    def parse_cors_origins(cls, value: Any) -> list[str]:
+        if isinstance(value, str):
+            return [item.strip() for item in value.split(",") if item.strip()]
+        if isinstance(value, list):
+            return value
+        raise TypeError("CORS_ORIGINS must be a comma-separated string or a list of strings")
 
 
 settings = Settings()
