@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - feat/base-backend-working
+      - main
+      - develop
+  pull_request:
+    branches:
+      - feat/base-backend-working
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_pass
+          POSTGRES_DB: test_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U test_user -d test_db"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/dev.txt
+
+      - name: Create test environment file
+        run: |
+          cat > .env <<'EOT'
+          APP_NAME=IRIS API
+          ENVIRONMENT=testing
+          DEBUG=False
+          DATABASE_URL=postgresql+psycopg2://test_user:test_pass@localhost:5432/test_db
+          REDIS_URL=redis://localhost:6379/0
+          JWT_SECRET_KEY=this_is_a_test_secret_key_that_is_long_enough
+          JWT_ALGORITHM=HS256
+          ACCESS_TOKEN_EXPIRE_MINUTES=30
+          EOT
+
+      - name: Run tests
+        run: |
+          pytest -q --maxfail=1 --disable-warnings
+
+      - name: Run coverage
+        run: |
+          pytest --cov=app --cov-report=term-missing

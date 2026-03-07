@@ -1,11 +1,23 @@
-from sqlalchemy import String
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Column, Integer, String
+from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from app.database import Base
+
 
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    name = Column(String, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    role = Column(String, nullable=False, default="user")
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    portfolios = relationship("Portfolio", back_populates="owner", cascade="all, delete-orphan")
+    broker_accounts = relationship(
+        "BrokerAccount", back_populates="owner", cascade="all, delete-orphan"
+    )
+    strategies = relationship("Strategy", back_populates="owner", cascade="all, delete-orphan")
+    trades = relationship("Trade", back_populates="owner", cascade="all, delete-orphan")
+    signals = relationship("Signal", back_populates="owner", cascade="all, delete-orphan")
