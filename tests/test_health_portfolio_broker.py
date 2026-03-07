@@ -64,13 +64,34 @@ def test_health_endpoint(client):
     assert response.json()["app_name"] == "IRIS API"
 
 
-def test_ready_endpoint_ok(client):
+def test_ready_endpoint_ok(client, monkeypatch):
+    import app.main as main_module
+
+    class DummySession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, _query):
+            return 1
+
+    class DummyRedis:
+        def ping(self):
+            return True
+
+    monkeypatch.setattr(main_module, "SessionLocal", lambda: DummySession())
+    monkeypatch.setattr(main_module, "redis_client", DummyRedis())
+
     response = client.get("/ready")
     assert response.status_code == 200, response.text
-    data = response.json()
-    assert data["status"] == "ok"
-    assert data["checks"]["database"] == "ok"
-    assert data["checks"]["redis"] == "ok"
+
+    payload = response.json()
+    assert payload["status"] == "ok"
+    assert payload["app_name"] == "IRIS API"
+    assert payload["checks"]["database"] == "ok"
+    assert payload["checks"]["redis"] == "ok"
 
 
 def test_ready_endpoint_db_failure(client, monkeypatch):
@@ -84,7 +105,12 @@ def test_ready_endpoint_db_failure(client, monkeypatch):
         def __exit__(self, exc_type, exc, tb):
             return False
 
+    class DummyRedis:
+        def ping(self):
+            return True
+
     monkeypatch.setattr(main_module, "SessionLocal", FailingSessionLocal())
+    monkeypatch.setattr(main_module, "redis_client", DummyRedis())
 
     response = client.get("/ready")
     assert response.status_code == 503, response.text
@@ -95,10 +121,21 @@ def test_ready_endpoint_db_failure(client, monkeypatch):
 
 
 def test_ready_endpoint_redis_failure(client, monkeypatch):
+    class DummySession:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, tb):
+            return False
+
+        def execute(self, _query):
+            return 1
+
     class FailingRedisClient:
         def ping(self):
             raise RuntimeError("redis down")
 
+    monkeypatch.setattr(main_module, "SessionLocal", lambda: DummySession())
     monkeypatch.setattr(main_module, "redis_client", FailingRedisClient())
 
     response = client.get("/ready")

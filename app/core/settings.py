@@ -1,3 +1,4 @@
+import json
 from typing import Any
 
 from pydantic import field_validator
@@ -47,10 +48,29 @@ class Settings(BaseSettings):
     @classmethod
     def parse_cors_origins(cls, value: Any) -> list[str]:
         if isinstance(value, str):
-            return [item.strip() for item in value.split(",") if item.strip()]
+            raw = value.strip()
+
+            if not raw:
+                return []
+
+            if raw.startswith("["):
+                parsed = json.loads(raw)
+                if not isinstance(parsed, list) or not all(
+                    isinstance(item, str) for item in parsed
+                ):
+                    raise TypeError("CORS_ORIGINS JSON value must be a list of strings")
+                return [item.strip() for item in parsed if item.strip()]
+
+            return [item.strip() for item in raw.split(",") if item.strip()]
+
         if isinstance(value, list):
-            return value
-        raise TypeError("CORS_ORIGINS must be a comma-separated string or a list of strings")
+            if not all(isinstance(item, str) for item in value):
+                raise TypeError("CORS_ORIGINS list must contain only strings")
+            return [item.strip() for item in value if item.strip()]
+
+        raise TypeError(
+            "CORS_ORIGINS must be a JSON list, a comma-separated string, or a list of strings"
+        )
 
 
 settings = Settings()

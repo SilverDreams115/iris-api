@@ -1,7 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
+from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.error_messages import BROKER_ACCOUNT_NOT_FOUND, NOT_ENOUGH_PERMISSIONS
 from app.crud.broker_account import (
     create_broker_account,
     delete_broker_account,
@@ -17,8 +18,29 @@ from app.schemas.broker_account import (
     BrokerAccountResponse,
     BrokerAccountUpdate,
 )
+from app.services.validators import (
+    ensure_access_to_resource,
+    ensure_exists,
+    resolve_owner_scope,
+)
 
 router = APIRouter(prefix="/broker-accounts", tags=["Broker Accounts"])
+
+
+def _get_accessible_broker_account(
+    db: Session,
+    broker_account_id: int,
+    current_user: User,
+):
+    broker_account = ensure_exists(
+        get_broker_account_by_id(db, broker_account_id),
+        BROKER_ACCOUNT_NOT_FOUND,
+    )
+    return ensure_access_to_resource(
+        current_user,
+        broker_account,
+        NOT_ENOUGH_PERMISSIONS,
+    )
 
 
 @router.post("/", response_model=BrokerAccountResponse, status_code=status.HTTP_201_CREATED)
@@ -37,10 +59,12 @@ def list_broker_accounts(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
+    owner_id = resolve_owner_scope(current_user)
+
+    if owner_id is None:
         return get_all_broker_accounts(db, skip=skip, limit=limit)
 
-    return get_broker_accounts_by_owner(db, current_user.id, skip=skip, limit=limit)
+    return get_broker_accounts_by_owner(db, owner_id, skip=skip, limit=limit)
 
 
 @router.get("/{broker_account_id}", response_model=BrokerAccountResponse)
@@ -49,20 +73,7 @@ def get_broker_account_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    broker_account = get_broker_account_by_id(db, broker_account_id)
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
-
-    if current_user.role != "admin" and broker_account.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
-    return broker_account
+    return _get_accessible_broker_account(db, broker_account_id, current_user)
 
 
 @router.patch("/{broker_account_id}", response_model=BrokerAccountResponse)
@@ -72,19 +83,7 @@ def update_broker_account_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    broker_account = get_broker_account_by_id(db, broker_account_id)
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
-
-    if current_user.role != "admin" and broker_account.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    broker_account = _get_accessible_broker_account(db, broker_account_id, current_user)
     return update_broker_account(db, broker_account, broker_account_in)
 
 
@@ -94,18 +93,6 @@ def delete_broker_account_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    broker_account = get_broker_account_by_id(db, broker_account_id)
-    if not broker_account:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Broker account not found",
-        )
-
-    if current_user.role != "admin" and broker_account.owner_id != current_user.id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Not enough permissions",
-        )
-
+    broker_account = _get_accessible_broker_account(db, broker_account_id, current_user)
     delete_broker_account(db, broker_account)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
