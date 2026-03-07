@@ -1,7 +1,6 @@
 from decimal import Decimal
-from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.schemas.enums import StrategyTimeframe
 
@@ -14,15 +13,51 @@ class StrategyCreate(BaseModel):
     portfolio_id: int
     broker_account_id: int
 
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Strategy name cannot be empty")
+        return value
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Strategy symbol cannot be empty")
+        return value
+
 
 class StrategyUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    symbol: Optional[str] = Field(default=None, min_length=1, max_length=50)
-    timeframe: Optional[StrategyTimeframe] = None
-    risk_percent: Optional[Decimal] = Field(default=None, gt=0, le=100)
-    is_active: Optional[bool] = None
-    portfolio_id: Optional[int] = None
-    broker_account_id: Optional[int] = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    symbol: str | None = Field(default=None, min_length=1, max_length=50)
+    timeframe: StrategyTimeframe | None = None
+    risk_percent: Decimal | None = Field(default=None, gt=0, le=100)
+    is_active: bool | None = None
+    portfolio_id: int | None = None
+    broker_account_id: int | None = None
+
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        if not value:
+            raise ValueError("Strategy name cannot be empty")
+        return value
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Strategy symbol cannot be empty")
+        return value
 
 
 class StrategyResponse(BaseModel):

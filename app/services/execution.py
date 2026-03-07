@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from decimal import Decimal
 
 from fastapi import HTTPException, status
@@ -19,9 +19,7 @@ def _conflict(detail: str) -> HTTPException:
     )
 
 
-def _validate_execution_prices(
-    signal: Signal, execution_in: SignalExecuteRequest
-) -> None:
+def _validate_execution_prices(signal: Signal, execution_in: SignalExecuteRequest) -> None:
     entry_price: Decimal = execution_in.entry_price
     stop_loss: Decimal = execution_in.stop_loss
     take_profit: Decimal = execution_in.take_profit
@@ -35,9 +33,7 @@ def _validate_execution_prices(
             raise _conflict("Invalid price relationship for sell signal")
 
 
-def execute_signal(
-    db: Session, signal: Signal, execution_in: SignalExecuteRequest
-) -> Trade:
+def execute_signal(db: Session, signal: Signal, execution_in: SignalExecuteRequest) -> Trade:
     if signal.status not in {"pending", "triggered"}:
         logger.warning(
             "Signal execution rejected. signal_id=%s status=%s",
@@ -66,10 +62,7 @@ def execute_signal(
 
     if broker_account is None:
         logger.warning(
-            (
-                "Signal execution rejected. signal_id=%s "
-                "strategy_id=%s missing_broker_account"
-            ),
+            ("Signal execution rejected. signal_id=%s " "strategy_id=%s missing_broker_account"),
             signal.id,
             strategy.id,
         )
@@ -77,10 +70,7 @@ def execute_signal(
 
     if broker_account.status != "active":
         logger.warning(
-            (
-                "Signal execution rejected. signal_id=%s "
-                "broker_account_id=%s broker_status=%s"
-            ),
+            ("Signal execution rejected. signal_id=%s " "broker_account_id=%s broker_status=%s"),
             signal.id,
             broker_account.id,
             broker_account.status,
@@ -107,7 +97,7 @@ def execute_signal(
 
     signal.status = "executed"
     signal.trade_id = trade.id
-    signal.executed_at = datetime.now(timezone.utc)
+    signal.executed_at = datetime.now(UTC)
     if execution_in.notes is not None:
         signal.notes = execution_in.notes
 
@@ -136,7 +126,7 @@ def reject_signal(db: Session, signal: Signal, rejection_reason: str) -> Signal:
 
     signal.status = "rejected"
     signal.rejection_reason = rejection_reason
-    signal.rejected_at = datetime.now(timezone.utc)
+    signal.rejected_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(signal)

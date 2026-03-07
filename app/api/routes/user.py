@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query, Response, status
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_current_user, require_role
+from app.api.deps import get_current_user, require_admin
 from app.core.error_messages import NOT_ENOUGH_PERMISSIONS, USER_NOT_FOUND
 from app.crud.user import (
     delete_user,
@@ -13,7 +13,6 @@ from app.crud.user import (
 )
 from app.database import get_db
 from app.models.user import User
-from app.schemas.enums import UserRole
 from app.schemas.user import UserResponse, UserRoleUpdate, UserUpdate
 from app.services.validators import ensure_exists, ensure_owner_or_admin
 
@@ -25,7 +24,7 @@ def list_users(
     skip: int = Query(default=0, ge=0),
     limit: int = Query(default=100, ge=1, le=100),
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin.value)),
+    current_user: User = Depends(require_admin),
 ):
     return get_users(db, skip=skip, limit=limit)
 
@@ -58,7 +57,7 @@ def update_user_role_endpoint(
     user_id: int,
     role_in: UserRoleUpdate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin.value)),
+    current_user: User = Depends(require_admin),
 ):
     user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     return update_user_role(db, user, role_in.role.value)
@@ -68,7 +67,7 @@ def update_user_role_endpoint(
 def deactivate_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin.value)),
+    current_user: User = Depends(require_admin),
 ):
     user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     return set_user_active_status(db, user, False)
@@ -78,7 +77,7 @@ def deactivate_user_endpoint(
 def activate_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin.value)),
+    current_user: User = Depends(require_admin),
 ):
     user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     return set_user_active_status(db, user, True)
@@ -88,7 +87,7 @@ def activate_user_endpoint(
 def delete_user_endpoint(
     user_id: int,
     db: Session = Depends(get_db),
-    current_user: User = Depends(require_role(UserRole.admin.value)),
+    current_user: User = Depends(require_admin),
 ):
     user = ensure_exists(get_user_by_id(db, user_id), USER_NOT_FOUND)
     delete_user(db, user)

@@ -1,0 +1,31 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.prod
+    container_name: iris_api_prod
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.production
+    depends_on:
+      - db
+      - redis
+    restart: unless-stopped
+
+  db:
+    image: postgres:16
+    container_name: iris_db_prod
+    restart: unless-stopped
+    env_file:
+      - .env.production.db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: iris_redis_prod
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

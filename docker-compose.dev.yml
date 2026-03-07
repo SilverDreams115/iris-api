@@ -1,0 +1,50 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: iris_api_dev
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env.docker
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+  db:
+    image: postgres:16
+    container_name: iris_db_dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: silver
+      POSTGRES_PASSWORD: silverpass
+      POSTGRES_DB: appdb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7
+    container_name: iris_redis_dev
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: iris_pgadmin_dev
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@iris.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:

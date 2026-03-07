@@ -1,19 +1,18 @@
-from pydantic import Field
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     APP_NAME: str = "IRIS API"
+    ENVIRONMENT: str = "development"
     DEBUG: bool = True
 
-    DATABASE_URL: str = Field(
-        default="postgresql+psycopg2://silver:silverpass@db:5432/appdb"
-    )
-    REDIS_URL: str = Field(default="redis://redis:6379/0")
+    DATABASE_URL: str
+    REDIS_URL: str
 
-    JWT_SECRET_KEY: str = Field(default="change_this_in_env_now")
-    JWT_ALGORITHM: str = Field(default="HS256")
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = Field(default=30, gt=0)
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -22,13 +21,20 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    @property
-    def database_url(self) -> str:
-        return self.DATABASE_URL
+    @field_validator("JWT_SECRET_KEY")
+    @classmethod
+    def validate_jwt_secret(cls, value: str) -> str:
+        if len(value) < 32:
+            raise ValueError("JWT_SECRET_KEY must be at least 32 characters long")
+        return value
 
-    @property
-    def SECRET_KEY(self) -> str:
-        return self.JWT_SECRET_KEY
+    @field_validator("ENVIRONMENT")
+    @classmethod
+    def validate_environment(cls, value: str) -> str:
+        allowed = {"development", "testing", "staging", "production"}
+        if value not in allowed:
+            raise ValueError(f"ENVIRONMENT must be one of: {', '.join(sorted(allowed))}")
+        return value
 
 
 settings = Settings()

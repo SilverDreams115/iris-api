@@ -74,9 +74,7 @@ def create_base_resources(client, token, symbol="EURUSD"):
     }
 
 
-def create_trade(
-    client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"
-):
+def create_trade(client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"):
     response = client.post(
         "/trades/",
         json={
@@ -103,9 +101,7 @@ def test_close_trade_sets_status_exit_price_pnl_and_timestamp(client):
     token = login_user(client, "close1@example.com", "Password123")
     resources = create_base_resources(client, token)
 
-    trade = create_trade(
-        client, token, resources["strategy_id"], resources["broker_id"]
-    )
+    trade = create_trade(client, token, resources["strategy_id"], resources["broker_id"])
 
     response = client.post(
         f"/trades/{trade['id']}/close",
@@ -129,9 +125,7 @@ def test_cannot_close_trade_twice(client):
     token = login_user(client, "close2@example.com", "Password123")
     resources = create_base_resources(client, token)
 
-    trade = create_trade(
-        client, token, resources["strategy_id"], resources["broker_id"]
-    )
+    trade = create_trade(client, token, resources["strategy_id"], resources["broker_id"])
 
     first = client.post(
         f"/trades/{trade['id']}/close",
@@ -160,9 +154,7 @@ def test_other_user_cannot_close_trade(client):
     owner_token = login_user(client, "close-owner@example.com", "Password123")
     resources = create_base_resources(client, owner_token)
 
-    trade = create_trade(
-        client, owner_token, resources["strategy_id"], resources["broker_id"]
-    )
+    trade = create_trade(client, owner_token, resources["strategy_id"], resources["broker_id"])
 
     register_user(client, "close-attacker@example.com", "Password123", "Close Attacker")
     attacker_token = login_user(client, "close-attacker@example.com", "Password123")

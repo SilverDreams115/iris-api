@@ -1,9 +1,15 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_current_user
+from app.core.error_messages import (
+    BROKER_ACCOUNT_NOT_FOUND,
+    NOT_ENOUGH_PERMISSIONS,
+    PORTFOLIO_NOT_FOUND,
+    STRATEGY_NOT_FOUND,
+)
 from app.crud.broker_account import get_broker_account_by_id
 from app.crud.metrics import (
     get_broker_account_metrics,
@@ -16,6 +22,7 @@ from app.crud.strategy import get_strategy_by_id
 from app.database import get_db
 from app.models.user import User
 from app.schemas.metrics import MetricsResponse
+from app.services.validators import ensure_access_to_resource, ensure_exists, resolve_owner_scope
 
 router = APIRouter(prefix="/metrics", tags=["Metrics"])
 
@@ -31,28 +38,22 @@ def metrics_summary(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    owner_id = None if current_user.role == "admin" else current_user.id
+    owner_id = resolve_owner_scope(current_user)
 
     if strategy_id is not None:
-        strategy = get_strategy_by_id(db, strategy_id)
-        if not strategy:
-            raise HTTPException(status_code=404, detail="Strategy not found")
-        if current_user.role != "admin" and strategy.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not enough permissions")
+        strategy = ensure_exists(get_strategy_by_id(db, strategy_id), STRATEGY_NOT_FOUND)
+        ensure_access_to_resource(current_user, strategy, NOT_ENOUGH_PERMISSIONS)
 
     if broker_account_id is not None:
-        broker_account = get_broker_account_by_id(db, broker_account_id)
-        if not broker_account:
-            raise HTTPException(status_code=404, detail="Broker account not found")
-        if current_user.role != "admin" and broker_account.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not enough permissions")
+        broker_account = ensure_exists(
+            get_broker_account_by_id(db, broker_account_id),
+            BROKER_ACCOUNT_NOT_FOUND,
+        )
+        ensure_access_to_resource(current_user, broker_account, NOT_ENOUGH_PERMISSIONS)
 
     if portfolio_id is not None:
-        portfolio = get_portfolio_by_id(db, portfolio_id)
-        if not portfolio:
-            raise HTTPException(status_code=404, detail="Portfolio not found")
-        if current_user.role != "admin" and portfolio.owner_id != current_user.id:
-            raise HTTPException(status_code=403, detail="Not enough permissions")
+        portfolio = ensure_exists(get_portfolio_by_id(db, portfolio_id), PORTFOLIO_NOT_FOUND)
+        ensure_access_to_resource(current_user, portfolio, NOT_ENOUGH_PERMISSIONS)
 
     return get_overview_metrics(
         db,
@@ -71,10 +72,7 @@ def metrics_overview(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if current_user.role == "admin":
-        return get_overview_metrics(db)
-
-    return get_overview_metrics(db, owner_id=current_user.id)
+    return get_overview_metrics(db, owner_id=resolve_owner_scope(current_user))
 
 
 @router.get("/strategies/{strategy_id}", response_model=MetricsResponse)
@@ -86,18 +84,13 @@ def metrics_by_strategy(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    strategy = get_strategy_by_id(db, strategy_id)
-    if not strategy:
-        raise HTTPException(status_code=404, detail="Strategy not found")
+    strategy = ensure_exists(get_strategy_by_id(db, strategy_id), STRATEGY_NOT_FOUND)
+    ensure_access_to_resource(current_user, strategy, NOT_ENOUGH_PERMISSIONS)
 
-    if current_user.role != "admin" and strategy.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    owner_id = None if current_user.role == "admin" else current_user.id
     return get_strategy_metrics(
         db,
         strategy_id=strategy_id,
-        owner_id=owner_id,
+        owner_id=resolve_owner_scope(current_user),
         symbol=symbol,
         closed_from=closed_from,
         closed_to=closed_to,
@@ -113,18 +106,16 @@ def metrics_by_broker_account(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    broker_account = get_broker_account_by_id(db, broker_account_id)
-    if not broker_account:
-        raise HTTPException(status_code=404, detail="Broker account not found")
+    broker_account = ensure_exists(
+        get_broker_account_by_id(db, broker_account_id),
+        BROKER_ACCOUNT_NOT_FOUND,
+    )
+    ensure_access_to_resource(current_user, broker_account, NOT_ENOUGH_PERMISSIONS)
 
-    if current_user.role != "admin" and broker_account.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    owner_id = None if current_user.role == "admin" else current_user.id
     return get_broker_account_metrics(
         db,
         broker_account_id=broker_account_id,
-        owner_id=owner_id,
+        owner_id=resolve_owner_scope(current_user),
         symbol=symbol,
         closed_from=closed_from,
         closed_to=closed_to,
@@ -140,18 +131,13 @@ def metrics_by_portfolio(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    portfolio = get_portfolio_by_id(db, portfolio_id)
-    if not portfolio:
-        raise HTTPException(status_code=404, detail="Portfolio not found")
+    portfolio = ensure_exists(get_portfolio_by_id(db, portfolio_id), PORTFOLIO_NOT_FOUND)
+    ensure_access_to_resource(current_user, portfolio, NOT_ENOUGH_PERMISSIONS)
 
-    if current_user.role != "admin" and portfolio.owner_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-
-    owner_id = None if current_user.role == "admin" else current_user.id
     return get_portfolio_metrics(
         db,
         portfolio_id=portfolio_id,
-        owner_id=owner_id,
+        owner_id=resolve_owner_scope(current_user),
         symbol=symbol,
         closed_from=closed_from,
         closed_to=closed_to,

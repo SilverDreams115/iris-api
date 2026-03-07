@@ -1,8 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.schemas.enums import SignalSide, SignalSource, SignalStatus
 
@@ -13,10 +12,26 @@ class SignalCreate(BaseModel):
     confidence: Decimal = Field(gt=0, le=100)
     status: SignalStatus = SignalStatus.pending
     source: SignalSource = SignalSource.manual
-    notes: Optional[str] = None
+    notes: str | None = None
     strategy_id: int
-    trade_id: Optional[int] = None
-    rejection_reason: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    trade_id: int | None = None
+    rejection_reason: str | None = Field(default=None, min_length=1, max_length=500)
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str) -> str:
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Signal symbol cannot be empty")
+        return value
+
+    @field_validator("notes", "rejection_reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
     @model_validator(mode="after")
     def validate_create_payload(self):
@@ -33,25 +48,67 @@ class SignalExecuteRequest(BaseModel):
     entry_price: Decimal = Field(gt=0)
     stop_loss: Decimal = Field(gt=0)
     take_profit: Decimal = Field(gt=0)
-    notes: Optional[str] = None
-    trade_id: Optional[int] = None
+    notes: str | None = None
+    trade_id: int | None = None
+
+    @field_validator("notes")
+    @classmethod
+    def normalize_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
 
 class SignalRejectRequest(BaseModel):
     rejection_reason: str = Field(min_length=1, max_length=500)
-    notes: Optional[str] = None
+    notes: str | None = None
+
+    @field_validator("rejection_reason")
+    @classmethod
+    def normalize_rejection_reason(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Rejection reason cannot be empty")
+        return value
+
+    @field_validator("notes")
+    @classmethod
+    def normalize_notes(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
 
 class SignalUpdate(BaseModel):
-    symbol: Optional[str] = Field(default=None, min_length=1, max_length=50)
-    side: Optional[SignalSide] = None
-    confidence: Optional[Decimal] = Field(default=None, gt=0, le=100)
-    status: Optional[SignalStatus] = None
-    source: Optional[SignalSource] = None
-    notes: Optional[str] = None
-    strategy_id: Optional[int] = None
-    trade_id: Optional[int] = None
-    rejection_reason: Optional[str] = Field(default=None, min_length=1, max_length=500)
+    symbol: str | None = Field(default=None, min_length=1, max_length=50)
+    side: SignalSide | None = None
+    confidence: Decimal | None = Field(default=None, gt=0, le=100)
+    status: SignalStatus | None = None
+    source: SignalSource | None = None
+    notes: str | None = None
+    strategy_id: int | None = None
+    trade_id: int | None = None
+    rejection_reason: str | None = Field(default=None, min_length=1, max_length=500)
+
+    @field_validator("symbol")
+    @classmethod
+    def normalize_symbol(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip().upper()
+        if not value:
+            raise ValueError("Signal symbol cannot be empty")
+        return value
+
+    @field_validator("notes", "rejection_reason")
+    @classmethod
+    def normalize_optional_text(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        value = value.strip()
+        return value or None
 
     @model_validator(mode="after")
     def validate_update_payload(self):
@@ -70,12 +127,12 @@ class SignalResponse(BaseModel):
     confidence: Decimal
     status: SignalStatus
     source: SignalSource
-    notes: Optional[str]
+    notes: str | None
     owner_id: int
     strategy_id: int
-    trade_id: Optional[int]
-    rejection_reason: Optional[str] = None
-    executed_at: Optional[datetime] = None
-    rejected_at: Optional[datetime] = None
+    trade_id: int | None
+    rejection_reason: str | None = None
+    executed_at: datetime | None = None
+    rejected_at: datetime | None = None
 
     model_config = ConfigDict(from_attributes=True)

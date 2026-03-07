@@ -10,11 +10,7 @@ class Portfolio(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     description = Column(String, nullable=True)
-    owner_id = Column(
-        Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False
-    )
+    owner_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
 
     owner = relationship("User", back_populates="portfolios")
-    strategies = relationship(
-        "Strategy", back_populates="portfolio", cascade="all, delete-orphan"
-    )
+    strategies = relationship("Strategy", back_populates="portfolio", cascade="all, delete-orphan")
