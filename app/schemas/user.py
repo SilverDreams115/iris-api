@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
 
 from app.schemas.enums import UserRole
@@ -15,7 +13,7 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
+    name: str | None = Field(default=None, min_length=1, max_length=255)
 
 
 class UserRoleUpdate(BaseModel):

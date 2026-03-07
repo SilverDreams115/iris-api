@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Optional
 
 from sqlalchemy import func
 from sqlalchemy.orm import Session
@@ -13,11 +12,11 @@ def _q(value) -> Decimal:
 
 def _apply_trade_filters(
     query,
-    owner_id: Optional[int] = None,
-    strategy_id: Optional[int] = None,
-    broker_account_id: Optional[int] = None,
-    portfolio_id: Optional[int] = None,
-    symbol: Optional[str] = None,
+    owner_id: int | None = None,
+    strategy_id: int | None = None,
+    broker_account_id: int | None = None,
+    portfolio_id: int | None = None,
+    symbol: str | None = None,
     closed_from=None,
     closed_to=None,
 ):
@@ -31,17 +30,13 @@ def _apply_trade_filters(
         query = query.filter(Trade.broker_account_id == broker_account_id)
 
     if portfolio_id is not None:
-        query = query.join(Trade.strategy).filter(
-            Trade.strategy.has(portfolio_id=portfolio_id)
-        )
+        query = query.join(Trade.strategy).filter(Trade.strategy.has(portfolio_id=portfolio_id))
 
     if symbol is not None:
         query = query.filter(Trade.symbol == symbol)
 
     if closed_from is not None:
-        query = query.filter(
-            Trade.closed_at.is_not(None), Trade.closed_at >= closed_from
-        )
+        query = query.filter(Trade.closed_at.is_not(None), Trade.closed_at >= closed_from)
 
     if closed_to is not None:
         query = query.filter(Trade.closed_at.is_not(None), Trade.closed_at <= closed_to)
@@ -80,12 +75,8 @@ def _build_metrics_from_query(base_query):
     winning_trades = base_query.filter(Trade.status == "closed", Trade.pnl > 0).count()
     losing_trades = base_query.filter(Trade.status == "closed", Trade.pnl < 0).count()
 
-    total_pnl_raw = base_query.with_entities(
-        func.coalesce(func.sum(Trade.pnl), 0)
-    ).scalar()
-    average_pnl_raw = base_query.with_entities(
-        func.coalesce(func.avg(Trade.pnl), 0)
-    ).scalar()
+    total_pnl_raw = base_query.with_entities(func.coalesce(func.sum(Trade.pnl), 0)).scalar()
+    average_pnl_raw = base_query.with_entities(func.coalesce(func.avg(Trade.pnl), 0)).scalar()
 
     gross_profit_raw = (
         base_query.filter(Trade.status == "closed", Trade.pnl > 0)

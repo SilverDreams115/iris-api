@@ -40,15 +40,11 @@ def test_admin_can_get_users_list(client):
 
 
 def test_admin_can_get_user_by_id(client):
-    register_user(
-        client, "users_admin_get@example.com", "Password123", "Users Admin Get"
-    )
+    register_user(client, "users_admin_get@example.com", "Password123", "Users Admin Get")
     set_user_role("users_admin_get@example.com", "admin")
     admin_token = login_user(client, "users_admin_get@example.com", "Password123")
 
-    register_user(
-        client, "target_user_get@example.com", "Password123", "Target User Get"
-    )
+    register_user(client, "target_user_get@example.com", "Password123", "Target User Get")
     target = get_user("target_user_get@example.com")
     assert target is not None
 
@@ -68,9 +64,7 @@ def test_admin_get_user_by_id_not_found(client):
 
 
 def test_admin_can_update_user(client):
-    register_user(
-        client, "users_admin_update@example.com", "Password123", "Users Admin Update"
-    )
+    register_user(client, "users_admin_update@example.com", "Password123", "Users Admin Update")
     set_user_role("users_admin_update@example.com", "admin")
     admin_token = login_user(client, "users_admin_update@example.com", "Password123")
 
@@ -107,15 +101,11 @@ def test_admin_update_user_not_found(client):
 
 
 def test_admin_can_change_user_role(client):
-    register_user(
-        client, "users_admin_role@example.com", "Password123", "Users Admin Role"
-    )
+    register_user(client, "users_admin_role@example.com", "Password123", "Users Admin Role")
     set_user_role("users_admin_role@example.com", "admin")
     admin_token = login_user(client, "users_admin_role@example.com", "Password123")
 
-    register_user(
-        client, "target_user_role@example.com", "Password123", "Target User Role"
-    )
+    register_user(client, "target_user_role@example.com", "Password123", "Target User Role")
     target = get_user("target_user_role@example.com")
     assert target is not None
 
@@ -130,15 +120,11 @@ def test_admin_can_change_user_role(client):
 
 
 def test_admin_can_delete_user(client):
-    register_user(
-        client, "users_admin_delete@example.com", "Password123", "Users Admin Delete"
-    )
+    register_user(client, "users_admin_delete@example.com", "Password123", "Users Admin Delete")
     set_user_role("users_admin_delete@example.com", "admin")
     admin_token = login_user(client, "users_admin_delete@example.com", "Password123")
 
-    register_user(
-        client, "target_user_delete@example.com", "Password123", "Target User Delete"
-    )
+    register_user(client, "target_user_delete@example.com", "Password123", "Target User Delete")
     target = get_user("target_user_delete@example.com")
     assert target is not None
 

@@ -12,9 +12,7 @@ def ensure_exists(resource, detail: str):
     return resource
 
 
-def ensure_owner_or_admin(
-    current_user, owner_id: int, detail: str = NOT_ENOUGH_PERMISSIONS
-):
+def ensure_owner_or_admin(current_user, owner_id: int, detail: str = NOT_ENOUGH_PERMISSIONS):
     if current_user.role != "admin" and current_user.id != owner_id:
         raise forbidden(detail)
 

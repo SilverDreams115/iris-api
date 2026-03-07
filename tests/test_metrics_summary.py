@@ -74,9 +74,7 @@ def create_base_resources(client, token, symbol="EURUSD"):
     }
 
 
-def create_trade(
-    client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"
-):
+def create_trade(client, token, strategy_id, broker_account_id, symbol="EURUSD", side="buy"):
     response = client.post(
         "/trades/",
         json={
@@ -118,12 +116,8 @@ def test_metrics_summary_returns_expected_values(client):
 
     resources = create_base_resources(client, token)
 
-    trade1 = create_trade(
-        client, token, resources["strategy_id"], resources["broker_id"]
-    )
-    trade2 = create_trade(
-        client, token, resources["strategy_id"], resources["broker_id"]
-    )
+    trade1 = create_trade(client, token, resources["strategy_id"], resources["broker_id"])
+    trade2 = create_trade(client, token, resources["strategy_id"], resources["broker_id"])
     create_trade(client, token, resources["strategy_id"], resources["broker_id"])
 
     close_trade(client, token, trade1["id"], pnl=50.25, exit_price=1.1100)
@@ -153,15 +147,9 @@ def test_metrics_summary_can_filter_by_strategy(client):
     a = create_base_resources(client, token, symbol="EURUSD")
     b = create_base_resources(client, token, symbol="GBPUSD")
 
-    trade_a1 = create_trade(
-        client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD"
-    )
-    trade_a2 = create_trade(
-        client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD"
-    )
-    trade_b1 = create_trade(
-        client, token, b["strategy_id"], b["broker_id"], symbol="GBPUSD"
-    )
+    trade_a1 = create_trade(client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD")
+    trade_a2 = create_trade(client, token, a["strategy_id"], a["broker_id"], symbol="EURUSD")
+    trade_b1 = create_trade(client, token, b["strategy_id"], b["broker_id"], symbol="GBPUSD")
 
     close_trade(client, token, trade_a1["id"], pnl=10.00)
     close_trade(client, token, trade_a2["id"], pnl=-5.00)
@@ -189,9 +177,7 @@ def test_metrics_summary_forbids_other_user_strategy(client):
     owner_token = login_user(client, "metrics-owner@example.com", "Password123")
     owner_resources = create_base_resources(client, owner_token)
 
-    register_user(
-        client, "metrics-attacker@example.com", "Password123", "Metrics Attacker"
-    )
+    register_user(client, "metrics-attacker@example.com", "Password123", "Metrics Attacker")
     attacker_token = login_user(client, "metrics-attacker@example.com", "Password123")
 
     response = client.get(

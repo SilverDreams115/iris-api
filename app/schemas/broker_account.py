@@ -1,5 +1,3 @@
-from typing import Optional
-
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.schemas.enums import BrokerAccountStatus, BrokerAccountType
@@ -12,10 +10,10 @@ class BrokerAccountCreate(BaseModel):
 
 
 class BrokerAccountUpdate(BaseModel):
-    broker_name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    account_label: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    account_type: Optional[BrokerAccountType] = None
-    status: Optional[BrokerAccountStatus] = None
+    broker_name: str | None = Field(default=None, min_length=1, max_length=255)
+    account_label: str | None = Field(default=None, min_length=1, max_length=255)
+    account_type: BrokerAccountType | None = None
+    status: BrokerAccountStatus | None = None
 
 
 class BrokerAccountResponse(BaseModel):

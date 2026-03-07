@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -26,7 +26,7 @@ def create_trade(db: Session, owner_id: int, trade_in: TradeCreate):
     )
 
     if trade_in.status == TradeStatus.closed:
-        db_trade.closed_at = datetime.now(timezone.utc)
+        db_trade.closed_at = datetime.now(UTC)
 
     db.add(db_trade)
     db.commit()
@@ -39,13 +39,7 @@ def get_trade_by_id(db: Session, trade_id: int):
 
 
 def get_trades_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
-    return (
-        db.query(Trade)
-        .filter(Trade.owner_id == owner_id)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return db.query(Trade).filter(Trade.owner_id == owner_id).offset(skip).limit(limit).all()
 
 
 def get_all_trades(db: Session, skip: int = 0, limit: int = 100):
@@ -91,7 +85,7 @@ def update_trade(db: Session, db_trade: Trade, trade_in: TradeUpdate):
         if db_trade.exit_price is None:
             raise ValueError("Closed trades require exit_price")
         if previous_status != TradeStatus.closed.value or db_trade.closed_at is None:
-            db_trade.closed_at = datetime.now(timezone.utc)
+            db_trade.closed_at = datetime.now(UTC)
     else:
         db_trade.closed_at = None
 

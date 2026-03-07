@@ -15,9 +15,7 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 logger = get_logger(__name__)
 
 
-@router.post(
-    "/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/register", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 def register(user_in: UserCreate, db: Session = Depends(get_db)):
     existing_user = get_user_by_email(db, user_in.email)
     if existing_user:
@@ -91,9 +89,7 @@ def change_password(
         )
 
     if password_in.current_password == password_in.new_password:
-        logger.warning(
-            "Change password rejected, same password for: %s", current_user.email
-        )
+        logger.warning("Change password rejected, same password for: %s", current_user.email)
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="New password must be different from current password",

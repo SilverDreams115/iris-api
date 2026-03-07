@@ -1,5 +1,4 @@
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -16,13 +15,13 @@ class StrategyCreate(BaseModel):
 
 
 class StrategyUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=1, max_length=255)
-    symbol: Optional[str] = Field(default=None, min_length=1, max_length=50)
-    timeframe: Optional[StrategyTimeframe] = None
-    risk_percent: Optional[Decimal] = Field(default=None, gt=0, le=100)
-    is_active: Optional[bool] = None
-    portfolio_id: Optional[int] = None
-    broker_account_id: Optional[int] = None
+    name: str | None = Field(default=None, min_length=1, max_length=255)
+    symbol: str | None = Field(default=None, min_length=1, max_length=50)
+    timeframe: StrategyTimeframe | None = None
+    risk_percent: Decimal | None = Field(default=None, gt=0, le=100)
+    is_active: bool | None = None
+    portfolio_id: int | None = None
+    broker_account_id: int | None = None
 
 
 class StrategyResponse(BaseModel):

@@ -155,13 +155,9 @@ def update_signal_endpoint(
     ensure_owner_or_admin(current_user, signal.owner_id, NOT_ENOUGH_PERMISSIONS)
 
     target_strategy_id = (
-        signal_in.strategy_id
-        if signal_in.strategy_id is not None
-        else signal.strategy_id
+        signal_in.strategy_id if signal_in.strategy_id is not None else signal.strategy_id
     )
-    target_trade_id = (
-        signal_in.trade_id if signal_in.trade_id is not None else signal.trade_id
-    )
+    target_trade_id = signal_in.trade_id if signal_in.trade_id is not None else signal.trade_id
 
     strategy, trade = _ensure_strategy_and_trade_are_coherent(
         db,

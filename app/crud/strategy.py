@@ -27,16 +27,8 @@ def get_strategy_by_id(db: Session, strategy_id: int):
     return db.query(Strategy).filter(Strategy.id == strategy_id).first()
 
 
-def get_strategies_by_owner(
-    db: Session, owner_id: int, skip: int = 0, limit: int = 100
-):
-    return (
-        db.query(Strategy)
-        .filter(Strategy.owner_id == owner_id)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+def get_strategies_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
+    return db.query(Strategy).filter(Strategy.owner_id == owner_id).offset(skip).limit(limit).all()
 
 
 def get_all_strategies(db: Session, skip: int = 0, limit: int = 100):

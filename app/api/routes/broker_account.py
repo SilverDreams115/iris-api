@@ -21,9 +21,7 @@ from app.schemas.broker_account import (
 router = APIRouter(prefix="/broker-accounts", tags=["Broker Accounts"])
 
 
-@router.post(
-    "/", response_model=BrokerAccountResponse, status_code=status.HTTP_201_CREATED
-)
+@router.post("/", response_model=BrokerAccountResponse, status_code=status.HTTP_201_CREATED)
 def create_broker_account_endpoint(
     broker_account_in: BrokerAccountCreate,
     db: Session = Depends(get_db),

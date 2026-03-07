@@ -1,6 +1,5 @@
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -12,11 +11,11 @@ class TradeCreate(BaseModel):
     side: TradeSide
     volume: Decimal = Field(gt=0)
     entry_price: Decimal = Field(gt=0)
-    exit_price: Optional[Decimal] = Field(default=None, gt=0)
-    stop_loss: Optional[Decimal] = Field(default=None, gt=0)
-    take_profit: Optional[Decimal] = Field(default=None, gt=0)
+    exit_price: Decimal | None = Field(default=None, gt=0)
+    stop_loss: Decimal | None = Field(default=None, gt=0)
+    take_profit: Decimal | None = Field(default=None, gt=0)
     status: TradeStatus = TradeStatus.open
-    pnl: Optional[Decimal] = None
+    pnl: Decimal | None = None
     strategy_id: int
     broker_account_id: int
 
@@ -33,17 +32,17 @@ class TradeCloseRequest(BaseModel):
 
 
 class TradeUpdate(BaseModel):
-    symbol: Optional[str] = None
-    side: Optional[TradeSide] = None
-    volume: Optional[Decimal] = Field(default=None, gt=0)
-    entry_price: Optional[Decimal] = Field(default=None, gt=0)
-    exit_price: Optional[Decimal] = Field(default=None, gt=0)
-    stop_loss: Optional[Decimal] = Field(default=None, gt=0)
-    take_profit: Optional[Decimal] = Field(default=None, gt=0)
-    status: Optional[TradeStatus] = None
-    pnl: Optional[Decimal] = None
-    strategy_id: Optional[int] = None
-    broker_account_id: Optional[int] = None
+    symbol: str | None = None
+    side: TradeSide | None = None
+    volume: Decimal | None = Field(default=None, gt=0)
+    entry_price: Decimal | None = Field(default=None, gt=0)
+    exit_price: Decimal | None = Field(default=None, gt=0)
+    stop_loss: Decimal | None = Field(default=None, gt=0)
+    take_profit: Decimal | None = Field(default=None, gt=0)
+    status: TradeStatus | None = None
+    pnl: Decimal | None = None
+    strategy_id: int | None = None
+    broker_account_id: int | None = None
 
     @model_validator(mode="after")
     def validate_update_payload(self):
@@ -58,12 +57,12 @@ class TradeResponse(BaseModel):
     side: TradeSide
     volume: Decimal
     entry_price: Decimal
-    exit_price: Optional[Decimal]
-    stop_loss: Optional[Decimal]
-    take_profit: Optional[Decimal]
+    exit_price: Decimal | None
+    stop_loss: Decimal | None
+    take_profit: Decimal | None
     status: TradeStatus
-    pnl: Optional[Decimal]
-    closed_at: Optional[datetime]
+    pnl: Decimal | None
+    closed_at: datetime | None
     owner_id: int
     strategy_id: int
     broker_account_id: int

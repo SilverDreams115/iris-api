@@ -37,9 +37,7 @@ from app.services.validators import (
 router = APIRouter(prefix="/trades", tags=["Trades"])
 
 
-def _ensure_strategy_and_broker_exist(
-    db: Session, strategy_id: int, broker_account_id: int
-):
+def _ensure_strategy_and_broker_exist(db: Session, strategy_id: int, broker_account_id: int):
     strategy = ensure_exists(
         get_strategy_by_id(db, strategy_id),
         STRATEGY_NOT_FOUND,
@@ -84,9 +82,7 @@ def create_trade_endpoint(
     return create_trade(db, current_user.id, trade_in)
 
 
-@router.post(
-    "/{trade_id}/close", response_model=TradeResponse, status_code=status.HTTP_200_OK
-)
+@router.post("/{trade_id}/close", response_model=TradeResponse, status_code=status.HTTP_200_OK)
 def close_trade_endpoint(
     trade_id: int,
     close_in: TradeCloseRequest,

@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from sqlalchemy.orm import Session
 
@@ -24,9 +24,9 @@ def create_signal(db: Session, owner_id: int, signal_in: SignalCreate):
     )
 
     if signal_in.status == SignalStatus.executed:
-        db_signal.executed_at = datetime.now(timezone.utc)
+        db_signal.executed_at = datetime.now(UTC)
     elif signal_in.status in {SignalStatus.rejected, SignalStatus.cancelled}:
-        db_signal.rejected_at = datetime.now(timezone.utc)
+        db_signal.rejected_at = datetime.now(UTC)
 
     db.add(db_signal)
     db.commit()
@@ -39,13 +39,7 @@ def get_signal_by_id(db: Session, signal_id: int):
 
 
 def get_signals_by_owner(db: Session, owner_id: int, skip: int = 0, limit: int = 100):
-    return (
-        db.query(Signal)
-        .filter(Signal.owner_id == owner_id)
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return db.query(Signal).filter(Signal.owner_id == owner_id).offset(skip).limit(limit).all()
 
 
 def get_all_signals(db: Session, skip: int = 0, limit: int = 100):
@@ -84,11 +78,8 @@ def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate):
         db_signal.status = signal_in.status.value
 
     if db_signal.status == SignalStatus.executed.value:
-        if (
-            previous_status != SignalStatus.executed.value
-            or db_signal.executed_at is None
-        ):
-            db_signal.executed_at = datetime.now(timezone.utc)
+        if previous_status != SignalStatus.executed.value or db_signal.executed_at is None:
+            db_signal.executed_at = datetime.now(UTC)
         db_signal.rejected_at = None
         db_signal.rejection_reason = None
 
@@ -97,7 +88,7 @@ def update_signal(db: Session, db_signal: Signal, signal_in: SignalUpdate):
         SignalStatus.cancelled.value,
     }:
         if previous_status != db_signal.status or db_signal.rejected_at is None:
-            db_signal.rejected_at = datetime.now(timezone.utc)
+            db_signal.rejected_at = datetime.now(UTC)
         db_signal.executed_at = None
 
     else:

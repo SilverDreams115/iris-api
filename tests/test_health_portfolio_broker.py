@@ -15,9 +15,7 @@ def set_user_role(email: str, role: str) -> None:
         db.close()
 
 
-def create_portfolio(
-    client, token, name="Main Portfolio", description="Test portfolio"
-):
+def create_portfolio(client, token, name="Main Portfolio", description="Test portfolio"):
     response = client.post(
         "/portfolios/",
         json={
@@ -112,9 +110,7 @@ def test_ready_endpoint_redis_failure(client, monkeypatch):
 
 
 def test_portfolio_crud_flow_for_owner(client):
-    register_user(
-        client, "portfolio_owner@example.com", "Password123", "Portfolio Owner"
-    )
+    register_user(client, "portfolio_owner@example.com", "Password123", "Portfolio Owner")
     token = login_user(client, "portfolio_owner@example.com", "Password123")
 
     created = create_portfolio(client, token)
@@ -198,15 +194,11 @@ def test_portfolio_not_found_paths(client):
 
 
 def test_admin_can_list_all_portfolios(client):
-    register_user(
-        client, "portfolio_user1@example.com", "Password123", "Portfolio User 1"
-    )
+    register_user(client, "portfolio_user1@example.com", "Password123", "Portfolio User 1")
     token_user1 = login_user(client, "portfolio_user1@example.com", "Password123")
     create_portfolio(client, token_user1, name="Portfolio 1")
 
-    register_user(
-        client, "portfolio_admin@example.com", "Password123", "Portfolio Admin"
-    )
+    register_user(client, "portfolio_admin@example.com", "Password123", "Portfolio Admin")
     set_user_role("portfolio_admin@example.com", "admin")
     admin_token = login_user(client, "portfolio_admin@example.com", "Password123")
     create_portfolio(client, admin_token, name="Portfolio 2")
@@ -248,9 +240,7 @@ def test_broker_account_crud_flow_for_owner(client):
     assert updated_data["account_label"] == "Updated Label"
     assert updated_data["status"] == "inactive"
 
-    deleted = client.delete(
-        f"/broker-accounts/{broker_id}", headers=auth_headers(token)
-    )
+    deleted = client.delete(f"/broker-accounts/{broker_id}", headers=auth_headers(token))
     assert deleted.status_code == 204, deleted.text
 
     missing = client.get(f"/broker-accounts/{broker_id}", headers=auth_headers(token))

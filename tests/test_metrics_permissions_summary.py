@@ -14,9 +14,7 @@ def set_user_role(email: str, role: str) -> None:
         db.close()
 
 
-def create_portfolio(
-    client, token, name="Metrics Portfolio", description="Metrics desc"
-):
+def create_portfolio(client, token, name="Metrics Portfolio", description="Metrics desc"):
     response = client.post(
         "/portfolios/",
         json={"name": name, "description": description},
@@ -169,9 +167,7 @@ def test_metrics_summary_with_filters(client):
 
 
 def test_metrics_summary_strategy_not_found(client):
-    register_user(
-        client, "metrics_nf_strategy@example.com", "Password123", "Metrics NF"
-    )
+    register_user(client, "metrics_nf_strategy@example.com", "Password123", "Metrics NF")
     token = login_user(client, "metrics_nf_strategy@example.com", "Password123")
 
     response = client.get(
@@ -195,9 +191,7 @@ def test_metrics_summary_broker_not_found(client):
 
 
 def test_metrics_summary_portfolio_not_found(client):
-    register_user(
-        client, "metrics_nf_portfolio@example.com", "Password123", "Metrics NF"
-    )
+    register_user(client, "metrics_nf_portfolio@example.com", "Password123", "Metrics NF")
     token = login_user(client, "metrics_nf_portfolio@example.com", "Password123")
 
     response = client.get(
@@ -209,17 +203,13 @@ def test_metrics_summary_portfolio_not_found(client):
 
 
 def test_metrics_summary_forbidden_for_foreign_strategy(client):
-    register_user(
-        client, "metrics_owner_a@example.com", "Password123", "Metrics Owner A"
-    )
+    register_user(client, "metrics_owner_a@example.com", "Password123", "Metrics Owner A")
     token_a = login_user(client, "metrics_owner_a@example.com", "Password123")
     portfolio = create_portfolio(client, token_a, name="Foreign Portfolio")
     broker = create_broker_account(client, token_a, broker_name="Foreign Broker")
     strategy = create_strategy(client, token_a, portfolio["id"], broker["id"])
 
-    register_user(
-        client, "metrics_owner_b@example.com", "Password123", "Metrics Owner B"
-    )
+    register_user(client, "metrics_owner_b@example.com", "Password123", "Metrics Owner B")
     token_b = login_user(client, "metrics_owner_b@example.com", "Password123")
 
     response = client.get(
@@ -231,17 +221,13 @@ def test_metrics_summary_forbidden_for_foreign_strategy(client):
 
 
 def test_metrics_by_strategy_forbidden_for_foreign_owner(client):
-    register_user(
-        client, "metrics_strategy_a@example.com", "Password123", "Metrics Strategy A"
-    )
+    register_user(client, "metrics_strategy_a@example.com", "Password123", "Metrics Strategy A")
     token_a = login_user(client, "metrics_strategy_a@example.com", "Password123")
     portfolio = create_portfolio(client, token_a, name="Strategy Portfolio")
     broker = create_broker_account(client, token_a, broker_name="Strategy Broker")
     strategy = create_strategy(client, token_a, portfolio["id"], broker["id"])
 
-    register_user(
-        client, "metrics_strategy_b@example.com", "Password123", "Metrics Strategy B"
-    )
+    register_user(client, "metrics_strategy_b@example.com", "Password123", "Metrics Strategy B")
     token_b = login_user(client, "metrics_strategy_b@example.com", "Password123")
 
     response = client.get(
@@ -253,15 +239,11 @@ def test_metrics_by_strategy_forbidden_for_foreign_owner(client):
 
 
 def test_metrics_by_broker_forbidden_for_foreign_owner(client):
-    register_user(
-        client, "metrics_broker_a@example.com", "Password123", "Metrics Broker A"
-    )
+    register_user(client, "metrics_broker_a@example.com", "Password123", "Metrics Broker A")
     token_a = login_user(client, "metrics_broker_a@example.com", "Password123")
     broker = create_broker_account(client, token_a, broker_name="Restricted Broker")
 
-    register_user(
-        client, "metrics_broker_b@example.com", "Password123", "Metrics Broker B"
-    )
+    register_user(client, "metrics_broker_b@example.com", "Password123", "Metrics Broker B")
     token_b = login_user(client, "metrics_broker_b@example.com", "Password123")
 
     response = client.get(
@@ -273,15 +255,11 @@ def test_metrics_by_broker_forbidden_for_foreign_owner(client):
 
 
 def test_metrics_by_portfolio_forbidden_for_foreign_owner(client):
-    register_user(
-        client, "metrics_portfolio_a@example.com", "Password123", "Metrics Portfolio A"
-    )
+    register_user(client, "metrics_portfolio_a@example.com", "Password123", "Metrics Portfolio A")
     token_a = login_user(client, "metrics_portfolio_a@example.com", "Password123")
     portfolio = create_portfolio(client, token_a, name="Restricted Portfolio")
 
-    register_user(
-        client, "metrics_portfolio_b@example.com", "Password123", "Metrics Portfolio B"
-    )
+    register_user(client, "metrics_portfolio_b@example.com", "Password123", "Metrics Portfolio B")
     token_b = login_user(client, "metrics_portfolio_b@example.com", "Password123")
 
     response = client.get(
@@ -293,19 +271,13 @@ def test_metrics_by_portfolio_forbidden_for_foreign_owner(client):
 
 
 def test_admin_can_access_foreign_metrics_resources(client):
-    register_user(
-        client, "metrics_foreign_owner@example.com", "Password123", "Foreign Owner"
-    )
+    register_user(client, "metrics_foreign_owner@example.com", "Password123", "Foreign Owner")
     owner_token = login_user(client, "metrics_foreign_owner@example.com", "Password123")
     portfolio = create_portfolio(client, owner_token, name="Admin Visible Portfolio")
-    broker = create_broker_account(
-        client, owner_token, broker_name="Admin Visible Broker"
-    )
+    broker = create_broker_account(client, owner_token, broker_name="Admin Visible Broker")
     strategy = create_strategy(client, owner_token, portfolio["id"], broker["id"])
 
-    register_user(
-        client, "metrics_super_admin@example.com", "Password123", "Metrics Super Admin"
-    )
+    register_user(client, "metrics_super_admin@example.com", "Password123", "Metrics Super Admin")
     set_user_role("metrics_super_admin@example.com", "admin")
     admin_token = login_user(client, "metrics_super_admin@example.com", "Password123")
 

@@ -117,9 +117,7 @@ def update_strategy_endpoint(
     ensure_owner_or_admin(current_user, strategy.owner_id, NOT_ENOUGH_PERMISSIONS)
 
     target_portfolio_id = (
-        strategy_in.portfolio_id
-        if strategy_in.portfolio_id is not None
-        else strategy.portfolio_id
+        strategy_in.portfolio_id if strategy_in.portfolio_id is not None else strategy.portfolio_id
     )
     target_broker_account_id = (
         strategy_in.broker_account_id

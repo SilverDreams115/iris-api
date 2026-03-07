@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
@@ -26,7 +26,7 @@ def close_trade(db: Session, trade: Trade, close_in: TradeCloseRequest) -> Trade
     trade.exit_price = close_in.exit_price
     trade.pnl = close_in.pnl
     trade.status = TradeStatus.closed.value
-    trade.closed_at = datetime.now(timezone.utc)
+    trade.closed_at = datetime.now(UTC)
 
     db.commit()
     db.refresh(trade)

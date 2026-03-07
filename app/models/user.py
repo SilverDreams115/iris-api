@@ -14,16 +14,10 @@ class User(Base):
     role = Column(String, nullable=False, default="user")
     is_active = Column(Boolean, nullable=False, default=True)
 
-    portfolios = relationship(
-        "Portfolio", back_populates="owner", cascade="all, delete-orphan"
-    )
+    portfolios = relationship("Portfolio", back_populates="owner", cascade="all, delete-orphan")
     broker_accounts = relationship(
         "BrokerAccount", back_populates="owner", cascade="all, delete-orphan"
     )
-    strategies = relationship(
-        "Strategy", back_populates="owner", cascade="all, delete-orphan"
-    )
+    strategies = relationship("Strategy", back_populates="owner", cascade="all, delete-orphan")
     trades = relationship("Trade", back_populates="owner", cascade="all, delete-orphan")
-    signals = relationship(
-        "Signal", back_populates="owner", cascade="all, delete-orphan"
-    )
+    signals = relationship("Signal", back_populates="owner", cascade="all, delete-orphan")
