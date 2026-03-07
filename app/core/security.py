@@ -1,32 +1,44 @@
 from datetime import datetime, timedelta, timezone
+from typing import Any
 
 from jose import jwt
-from pwdlib import PasswordHash
+from passlib.context import CryptContext
 
 from app.core.settings import settings
 
-password_hash = PasswordHash.recommended()
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    return password_hash.hash(password)
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return password_hash.verify(plain_password, hashed_password)
+    return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(subject: str, role: str) -> str:
-    expire = datetime.now(timezone.utc) + timedelta(
-        minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
-    )
-    payload = {
-        "sub": subject,
-        "role": role,
+def create_access_token(
+    subject: str | Any,
+    role: str | None = None,
+    expires_delta: timedelta | None = None,
+) -> str:
+    if expires_delta:
+        expire = datetime.now(timezone.utc) + expires_delta
+    else:
+        expire = datetime.now(timezone.utc) + timedelta(
+            minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES
+        )
+
+    to_encode = {
+        "sub": str(subject),
         "exp": expire,
     }
+
+    if role is not None:
+        to_encode["role"] = role
+
     return jwt.encode(
-        payload,
+        to_encode,
         settings.JWT_SECRET_KEY,
         algorithm=settings.JWT_ALGORITHM,
     )
